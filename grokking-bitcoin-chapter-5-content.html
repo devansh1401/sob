@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.15">
+<meta name="author" content="Kalle Rosenbaum">
+<title>Grokking Bitcoin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<link rel="stylesheet" href="style/asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="style/grokking-bitcoin.css">
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>Grokking Bitcoin</h1>
+<div class="details">
+<span id="author" class="author">Kalle Rosenbaum</span><br>
+</div>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#ch05">5. Transactions</a>
+<ul class="sectlevel2">
+<li><a href="#_problems_with_the_old_system">5.1. Problems with the old system</a></li>
+<li><a href="#pay-using-a-transaction">5.2. Paying using a transaction</a>
+<ul class="sectlevel3">
+<li><a href="#_creating_the_transaction">5.2.1. Creating the transaction</a></li>
+<li><a href="#_lisa_confirms_the_transaction">5.2.2. Lisa confirms the transaction</a></li>
+<li><a href="#_anyone_verifies_the_transaction">5.2.3. Anyone verifies the transaction</a></li>
+<li><a href="#_account_based_and_value_based_systems">5.2.4. Account-based and value-based systems</a></li>
+</ul>
+</li>
+<li><a href="#_script">5.3. Script</a>
+<ul class="sectlevel3">
+<li><a href="#_why_use_a_program">5.3.1. Why use a program?</a></li>
+<li><a href="#_why_signature_script_and_pubkey_script">5.3.2. Why signature script and pubkey script?</a></li>
+</ul>
+</li>
+<li><a href="#_where_were_we">5.4. Where were we?</a></li>
+<li><a href="#_fancy_payment_types">5.5. Fancy payment types</a>
+<ul class="sectlevel3">
+<li><a href="#_multiple_signatures">5.5.1. Multiple signatures</a></li>
+<li><a href="#pay-to-script-hash">5.5.2. Pay-to-script-hash</a></li>
+<li><a href="#_pay_to_script_hash_addresses">5.5.3. Pay-to-script-hash addresses</a></li>
+</ul>
+</li>
+<li><a href="#lock-time-and-sequence-numbers">5.6. More stuff in transactions</a></li>
+<li><a href="#_rewards_and_coin_creation">5.7. Rewards and coin creation</a>
+<ul class="sectlevel3">
+<li><a href="#_transition_from_version_4_0">5.7.1. Transition from version 4.0</a></li>
+</ul>
+</li>
+<li><a href="#trust-in-lisa">5.8. Trust in Lisa</a></li>
+<li><a href="#_recap">5.9. Recap</a>
+<ul class="sectlevel3">
+<li><a href="#_system_changes">5.9.1. System changes</a></li>
+</ul>
+</li>
+<li><a href="#_exercises">5.10. Exercises</a>
+<ul class="sectlevel3">
+<li><a href="#_warm_up">5.10.1. Warm up</a></li>
+<li><a href="#_dig_in">5.10.2. Dig in</a></li>
+</ul>
+</li>
+<li><a href="#_summary">5.11. Summary</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="ch05">5. Transactions</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This chapter covers</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Bitcoin, or cookie token, transactions</p>
+</li>
+<li>
+<p>Creating, confirming, and verifying transactions</p>
+</li>
+<li>
+<p>Programming money</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The cookie token payments you and your coworkers have been making so far
+have some serious problems. The worst is that Lisa can steal, which
+worries some new people. They’re hesitant to use the system if they know
+Lisa can steal from them.</p>
+</div>
+<div class="paragraph">
+<p>This chapter will focus mainly on <em>transactions</em> (<a href="#fig0501">Figure 1</a>): pieces
+of data that formalize how users send payments to Lisa. Transactions
+replace the old email to Lisa. They’ll be stored as is in the
+spreadsheet instead of using the current To, From, and CT scheme. This
+will make it impossible for Lisa to steal other people’s money because
+anyone can now verify all payments in the spreadsheet.</p>
+</div>
+<div id="fig0501" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-01.svg" alt="05 01" width="75%">
+</div>
+<div class="title">Figure 1. Bitcoin transactions</div>
+</div>
+<div class="paragraph">
+<p>In this chapter, we’ll go deep on transactions and explore how they’re
+<em>programmable</em>, meaning they’re flexible as far as what you can do
+with them. For example, multisignature transactions can require two
+signatures out of three possible signatures, to spend money shared among
+three people.</p>
+</div>
+<div class="paragraph">
+<p>After this chapter, the system will have changed a lot—in how wallets
+create payments, how Lisa verifies payments, and how payments are
+stored. Most important, everyone will be able to verify payments in the
+spreadsheet.</p>
+</div>
+<div class="sect2">
+<h3 id="_problems_with_the_old_system">5.1. Problems with the old system</h3>
+<div class="paragraph">
+<p>Lisa is performing valuable work. She makes sure no one cheats by
+verifying digital signatures and checking public key hash (PKH) balances
+before confirming a payment. She confirms payments by adding them to the
+cookie token spreadsheet.</p>
+</div>
+<div class="paragraph">
+<p>But this old approach presents several problems:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Lisa is getting tired of calculating the balance before approving a
+payment. The ledger is growing, and each check becomes more
+time-consuming as new payments are added.</p>
+</li>
+<li>
+<p>If you have two addresses with 5 CT each, you must make two separate
+payments to pay 10 CT for a cookie. This lays an unnecessary burden on
+the sender as well as Lisa. It also bloats the spreadsheet with
+excessive rows.</p>
+</li>
+<li>
+<p>Because the company has grown and some people don’t know Lisa well,
+trust in her begins to fade. Some people fear Lisa will steal cookie
+tokens from them in the spreadsheet. Only Lisa can verify signatures
+because only she sees the emails sent to her. So she <em>could</em> increase
+the CT column of a payment to her or add a row with a false payment
+from, say, John to Lisa (<a href="#fig0502">Figure 2</a>). No one could prove Lisa
+committed fraud. It doesn’t matter that she’s the most trustworthy
+human on earth.  If people don’t know that, they’re going to assume
+Lisa is as greedy as everyone else.</p>
+</li>
+</ul>
+</div>
+<div id="fig0502" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-02.svg" alt="05 02" width="75%">
+</div>
+<div class="title">Figure 2. Bad stuff Lisa <em>could</em> do. She wouldn’t, but she could.</div>
+</div>
+<div class="paragraph">
+<p>Note that Lisa can’t create any new money, other than the 7,200 CT per
+day as agreed. Also if she tries to steal more than what’s available on
+a PKH, someone verifying the spreadsheet will notice the total amount of
+money is becoming too big. Lisa will get busted.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Minimize trust</div>
+<div class="paragraph">
+<p>Minimizing trust between people is what Bitcoin is all about.
+Transactions bring us one step closer to a trustless system in which
+everyone can verify everything.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Lisa hates that people distrust her. She knows there’s not much she can
+do to change her coworkers’ level of trust. An interesting alternative
+is to <em>minimize the trust needed</em>. She concludes that the best way to
+do this is to make the process super-transparent so everyone can verify
+payments. At the same time, she’ll improve how she verifies that people
+don’t spend money they don’t have and how to spend from multiple
+addresses at the same time. She invents the <em>cookie token transaction</em>
+to solve the three problems outlined previously.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="pay-using-a-transaction">5.2. Paying using a transaction</h3>
+<div class="paragraph">
+<p>Transactions will replace both how a user’s wallet sends a payment to
+Lisa and what’s stored in the spreadsheet. They won’t change how wallets
+behave from a user’s perspective—the wallet app will <em>look</em> exactly the
+same.</p>
+</div>
+<div class="paragraph">
+<p>Suppose John wants to buy a cookie in the cafe. He won’t email Lisa
+the way he’s done so many times before. The wallet software now uses
+transactions, so his wallet will create a transaction instead, as
+<a href="#fig0503">Figure 3</a> shows. The transaction’s purpose is to pay 10 CT to the
+cafe’s cookie token address.</p>
+</div>
+<div id="fig0503" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-03.svg" alt="05 03" width="75%">
+</div>
+<div class="title">Figure 3. The payment process is the same for users, but it’s different for Lisa and the spreadsheet.</div>
+</div>
+<div class="paragraph">
+<p>John scans the cafe’s payment URI, and his wallet creates a transaction
+and asks him to accept it. He clicks OK, and the wallet signs the
+transaction. John’s wallet then sends the signed transaction as an
+attachment in an otherwise empty email to Lisa.</p>
+</div>
+<div class="paragraph">
+<p>The transaction contains information about where to send money. But it
+also contains information about <em>what money</em> to spend by referencing
+specific “coins” called <em>unspent transaction outputs</em> (UTXOs) that John
+received in previous transactions.</p>
+</div>
+<div class="paragraph">
+<p>Lisa verifies that the coins spent in the transaction exist and aren’t
+already spent. She also verifies that the signatures—there might be
+several in a transaction—are valid. If all checks pass, Lisa confirms
+the transaction by appending it, exactly as she received it, to the end
+of the spreadsheet.</p>
+</div>
+<div class="paragraph">
+<p>Once the transaction hits the spreadsheet, anyone can make the same
+verification of that transaction that Lisa did. They can do this to
+verify Lisa doesn’t steal money from someone else or otherwise mess with
+other people’s money.</p>
+</div>
+<div class="paragraph">
+<p>In the next three subsections, we’ll dig deeper into the three phases:
+create, confirm, and verify.</p>
+</div>
+<div class="sect3">
+<h4 id="_creating_the_transaction">5.2.1. Creating the transaction</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="ulist checklist">
+<div class="title">John’s transaction</div>
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> Create (John)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Confirm (Lisa)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Verify (anyone)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let’s dive in and look closer at how John’s transaction is created.</p>
+</div>
+<div id="fig0504" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-04.svg" alt="05 04" width="75%">
+</div>
+<div class="title">Figure 4. John’s wallet prepares to pay 10 CT for a cookie. He uses two keys with funds to cover the cost. He pays himself the change of 3 CT to a fresh address. The transaction isn’t yet signed.</div>
+</div>
+<div class="paragraph">
+<p>John’s wallet has created a new transaction (<a href="#fig0504">Figure 4</a>). It has two
+<em>inputs</em> and two <em>outputs</em>. Inputs specify which outputs of
+previous transactions to spend. Outputs specify where the money goes.</p>
+</div>
+<div class="sect4">
+<h5 id="_inputs">Inputs</h5>
+<div class="paragraph">
+<p>The inputs specify which transaction outputs to spend. John has two
+UTXOs, one with 8 CT and one with 5 CT. The unspent outputs belong to
+two previous transactions, transaction 1 and transaction 2, that paid
+money to John. Now, John wants to spend these UTXOs.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-01.svg" alt="u05 01">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>A transaction input references a previous transaction using the previous
+transaction’s <em>transaction ID</em> (txid). The transaction’s txid is its
+double SHA256 hash. It’s called a transaction <em>ID</em> because this hash is
+often used to refer to the transaction, as in the case with inputs in
+<a href="#fig0504">Figure 4</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The rationale for using double SHA256 here isn’t entirely clear, but
+doing so prevents something called a <em>length-extension attack</em>.
+Bitcoin’s creator probably used double SHA256 as a security measure in
+order to not have to think about these kinds of attacks. For details,
+see <a href="#web-length-extension-attack">[web-length-extension-attack]</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>John’s first input, with index 0, contains</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The txid of transaction 1</p>
+</li>
+<li>
+<p>The index, 1, of the output in transaction 1 to spend</p>
+</li>
+<li>
+<p>An empty placeholder for a signature</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>His second input, with index 1, contains</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The txid of transaction 2</p>
+</li>
+<li>
+<p>The index, 0, of the output in transaction 2 to spend</p>
+</li>
+<li>
+<p>An empty placeholder for a signature</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>John will fill in the signatures last, after the transaction is
+otherwise complete.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_outputs">Outputs</h5>
+<div class="paragraph">
+<p>A transaction output contains an amount and a PKH. John’s transaction
+has two outputs. The output at index 0 pays 10 CT to PKH<sub>C</sub>, the cafe,
+for the cookie. The output at index 1 pays 3 CT back to one of John’s
+own keys, PKH<sub>3</sub>. We call this <em>change</em> because it resembles traditional
+change, in which you pay $75 with a $100 bill and get $25 back: John
+pays with 13 CT and gets 3 CT back to his change address, PKH<sub>3</sub>. Change
+is needed because you can’t partly spend a transaction output. You
+either spend it completely, or you don’t spend it.</p>
+</div>
+<div class="paragraph">
+<p>The outputs and inputs are a bit more advanced than just specifying a
+PKH in an output and a signature in the input. In reality, the output
+contains a computer program that will verify the signature in the
+spending input. We’ll talk more about this later.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Transaction fee</div>
+<div class="paragraph">
+<p>Normally, you need to pay a transaction fee for the Bitcoin network to
+process your transaction.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>For a transaction to be valid, the sum of the input amounts must be
+greater than or equal to the sum of the output amounts. The
+difference, if any, is called a <em>transaction fee</em>, which we’ll
+discuss in <a href="#ch07">[ch07]</a>. For now, John pays no transaction fee, so his
+output sum matches the input sum exactly.</p>
+</div>
+<div class="paragraph">
+<p>The transaction is now created, but it isn’t yet signed. Anyone could
+have created this transaction because it’s based completely on public
+information. The inputs just refer to transactions in the spreadsheet
+and indexes within those transactions. But only John will be able to
+sign this transaction, because only he has the private keys
+corresponding to PKH<sub>1</sub> and PKH<sub>2</sub>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sign-transaction">Signing the transaction</h5>
+<div class="paragraph">
+<p>John clicks OK in his wallet to approve signing the transaction. The
+wallet now needs to make two signatures, one for PKH<sub>1</sub> and one for
+PKH<sub>2</sub>. This is because John must prove he has both the private key
+for PKH<sub>1</sub> and the private key for PKH<sub>2</sub>. See <a href="#fig0505">Figure 5</a>.</p>
+</div>
+<div id="fig0505" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-05.svg" alt="05 05" width="75%">
+</div>
+<div class="title">Figure 5. John’s wallet signs the transaction. Each input gets its own signature. The public key is also needed in the inputs because anyone should be able to verify the signature.</div>
+</div>
+<div class="paragraph">
+<p>Each input needs to be signed individually. The private key
+corresponding to PKH<sub>1</sub> must be used to sign the input at index 0
+because that input spends money addressed to PKH<sub>1</sub>. Similarly, the
+private key corresponding to PKH<sub>2</sub> must be used for the signature of
+the input at index 1 because it spends money addressed to PKH<sub>2</sub>.</p>
+</div>
+<div class="paragraph">
+<p>Each signature will commit to the entire transaction, which means the
+signing algorithm will hash the entire transaction, excluding
+signatures. If anything changes in the transaction, any signature made
+for this transaction will become invalid.</p>
+</div>
+<div class="paragraph">
+<p>To make verification easier, you sign a cleaned version of the
+transaction, which means there are no signatures in any of the inputs.
+You can’t put a signature in input 0 and <em>then</em> sign input 1.
+Verification would be difficult if the person verifying didn’t know in
+what order the signatures were made. If you make <em>all</em> signatures from a
+cleaned transaction and <em>then</em> add all signatures to it, it doesn’t
+matter in what order the signatures were made.</p>
+</div>
+<div class="paragraph">
+<p>When the wallet has made all signatures, it adds them to the
+transaction. But one piece is still missing. How can someone verifying
+the transaction—for example, the cafe—know which public key to use to
+verify a signature? The cafe can see only the PKH in the spent output
+and the signature in the spending input. It can’t get the public key
+from the PKH because cryptographic hashes are one-way functions,
+remember? John’s wallet must explicitly add the corresponding public key
+to the input. The signature in input 0 that spends money from PKH<sub>1</sub>
+needs to be verified with the public key from which PKH<sub>1</sub> was
+generated. Similarly, input 1 gets the public key corresponding to
+PKH<sub>2</sub>.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_lisa_confirms_the_transaction">5.2.2. Lisa confirms the transaction</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="ulist checklist">
+<div class="title">John’s transaction</div>
+<ul class="checklist">
+<li>
+<p><i class="fa fa-check-square-o"></i> Create (John)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Confirm (Lisa)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Verify (anyone)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The transaction is ready to be sent to Lisa. John’s wallet sends it as
+an attachment in an email. Lisa picks up the transaction and verifies
+that:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The transaction spends outputs of transactions that actually exist
+in the spreadsheet and that they aren’t already spent by some other
+transaction in the spreadsheet.</p>
+</li>
+<li>
+<p>The total value of the transaction outputs doesn’t exceed the total
+value of the transaction inputs. Otherwise, the transaction would
+create new money out of thin air.</p>
+</li>
+<li>
+<p>The signatures are correct.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Lisa doesn’t have to calculate the PKH balance anymore, but she needs
+to check that the spent output exists and isn’t already spent.</p>
+</div>
+<div class="paragraph">
+<p>How does she check that an output of a transaction is unspent? Doesn’t
+she have to search the spreadsheet to look for transactions that spend
+this output? Yes, she does. This seems about as cumbersome as
+searching through the spreadsheet to calculate balances. Don’t worry:
+Lisa has a plan.</p>
+</div>
+<div class="sect4">
+<h5 id="_unspent_transaction_output_set">Unspent transaction output set</h5>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">UTXO set</div>
+<div class="paragraph">
+<p>All nodes in the Bitcoin network maintain a private UTXO set to speed
+up transaction verification.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>To make the unspent checks easier, she creates a new, private database
+that she calls the <em>UTXO set</em> (<a href="#fig0506">Figure 6</a>). It’s a set of all UTXOs.</p>
+</div>
+<div id="fig0506" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-06.svg" alt="05 06" width="75%">
+</div>
+<div class="title">Figure 6. Lisa verifies that John doesn’t double spend by using her UTXO set.</div>
+</div>
+<div class="paragraph">
+<p>An entry in the UTXO set consists of a txid, an index (idx), and the
+actual transaction output. Lisa keeps her UTXO set updated while
+verifying transactions.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Double spend</div>
+<div class="paragraph">
+<p><em>Double spend</em> means to spend the same output twice. Lisa can prevent
+double spends by consulting her UTXO set.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Before Lisa adds John’s transaction to the spreadsheet, she makes sure
+all outputs that the transaction spends are in the UTXO set. If not,
+then John is trying to spend money that either never existed in the
+spreadsheet or is already spent (usually referred to as a <em>double-spend
+attempt</em>).</p>
+</div>
+<div class="paragraph">
+<p>For each input in John’s transaction, Lisa uses her UTXO set to look up
+the txid and the output index. If all spent outputs are present in the
+UTXO set, no double-spend attempt or spending of nonexistent coins is
+detected. In this case, Lisa finds both outputs in her UTXO set and
+starts verifying signatures. Lisa needs to verify the signatures of both
+of John’s transaction inputs.</p>
+</div>
+<div id="fig0507" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-07.svg" alt="05 07" width="75%">
+</div>
+<div class="title">Figure 7. Lisa verifies the first signature of John’s transaction.</div>
+</div>
+<div class="paragraph">
+<p>She grabs the PKH from the output spent by the first input and verifies
+that it matches the hash of the public key in the input (<a href="#fig0507">Figure 7</a>).
+She verifies the signature in the input using the public key, the
+signature, and the transaction, and then verifies the second input’s
+signature the same way. Both are good.</p>
+</div>
+<div class="paragraph">
+<p>Lisa then adds the confirmed transaction to the spreadsheet. She must
+remove the newly spent outputs from the UTXO set and add the outputs of
+John’s transaction to it (<a href="#fig0508">Figure 8</a>). This is how she keeps the UTXO
+set updated to reflect the transaction spreadsheet’s contents.</p>
+</div>
+<div id="fig0508" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-08.svg" alt="05 08" width="75%">
+</div>
+<div class="title">Figure 8. Lisa adds the transaction to the spreadsheet and removes the spent outputs from the UTXO set.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Rebuilding the UTXO set</div>
+<div class="paragraph">
+<p>The UTXO set is built from the transactions in the spreadsheet only. It
+can be re-created at any time, notably by anyone with read access to the
+spreadsheet.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Lisa keeps the UTXO set up to date by updating it as <a href="#fig0508">Figure 8</a>
+illustrates for every incoming transaction. If she loses the UTXO set,
+she can re-create it from the spreadsheet by starting with an empty
+UTXO set and reapplying all transactions in the spreadsheet to it, one
+by
+one.</p>
+</div>
+<div class="paragraph">
+<p>It isn’t only Lisa who can create a UTXO set. Anyone with access to the
+spreadsheet can now do the same. This is important in later chapters,
+when we replace Lisa with multiple people doing her job. It’s also
+important for people who just want to verify the spreadsheet to convince
+themselves the information in it is correct.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_anyone_verifies_the_transaction">5.2.3. Anyone verifies the transaction</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="ulist checklist">
+<div class="title">John’s transaction</div>
+<ul class="checklist">
+<li>
+<p><i class="fa fa-check-square-o"></i> Create (John)</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> Confirm (Lisa)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Verify (anyone)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now that John’s transaction is stored in the spreadsheet exactly as he
+created it, anyone with read access can verify it. Anyone can create a
+<em>private</em> UTXO set, work through all the transactions, and end up with
+the exact same UTXO set as Lisa.</p>
+</div>
+<div class="paragraph important">
+<p>This means anyone can make the same checks that Lisa does. They can
+verify that Lisa is doing her job. These verifiers are important to the
+system because they make sure updates to the spreadsheet obey the
+agreed-on rules.</p>
+</div>
+<div class="paragraph">
+<p>In Bitcoin, these verifiers are called <em>full nodes</em>. Lisa is also a
+full node (a verifier), but she does more than a full node—she updates
+the spreadsheet. A full node is also called a <em>verifying node</em> or, more
+casually, a <em>node</em> in Bitcoin.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="ulist checklist">
+<div class="title">John’s transaction</div>
+<ul class="checklist">
+<li>
+<p><i class="fa fa-check-square-o"></i> Create (John)</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> Confirm (Lisa)</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> Verify (anyone)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Lisa can no longer steal someone else’s money, because doing so would
+make the spreadsheet invalid. For example, suppose she tried to change
+the output recipient of John’s transaction from PKH<sub>C</sub> to PKH<sub>L</sub>. She
+effectively tries to steal 10 CT from the cafe (<a href="#fig0509">Figure 9</a>).</p>
+</div>
+<div id="fig0509" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-09.svg" alt="05 09" width="50%">
+</div>
+<div class="title">Figure 9. Lisa can no longer steal someone else’s money. If she does, the signatures will become invalid and disclose her immoral act.</div>
+</div>
+<div class="paragraph">
+<p>Because Lisa has changed the contents of John’s transaction, that
+transaction’s signatures will no longer be valid. Anyone with access to
+the spreadsheet can notice this because everything is super-transparent.</p>
+</div>
+<div class="sect4">
+<h5 id="_security_consequences_of_public_signatures">Security consequences of public signatures</h5>
+<div class="paragraph">
+<p>The good thing about public signatures is that anyone can verify all
+transactions. But there’s a slight drawback.</p>
+</div>
+<div class="paragraph">
+<p>Remember in <a href="#ch03">[ch03]</a>, when we introduced PKHs? When you used PKHs, the
+public key wasn’t revealed in the spreadsheet. This protected money
+with two security layers: the public-key derivation function and a
+cryptographic hash function (SHA256 + RIPEMD160). If the public key
+was revealed somehow, the private key would still be protected by the
+public-key derivation function. It was like a belt and suspenders type
+of thing.</p>
+</div>
+<div class="paragraph">
+<p>But using transactions, the public key is revealed in the spending
+transaction’s input when an output is spent. Look at John’s
+transaction again in <a href="#fig0510">Figure 10</a>.</p>
+</div>
+<div id="fig0510" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-10.svg" alt="05 10" width="75%">
+</div>
+<div class="title">Figure 10. The input reveals the public key. We made an extra effort to avoid this in <a href="#ch03">[ch03]</a>.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Don’t reuse addresses</div>
+<div class="paragraph">
+<p>Bitcoin addresses shouldn’t be reused. Reusing addresses degrades both
+security and privacy.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The input contains the public key. But it only reveals the public key
+once the output is spent. This brings up an important point: don’t reuse
+addresses! If John has other unspent outputs to PKH<sub>1</sub>, those outputs
+are now less secure because they’re no longer protected by the
+cryptographic hash function—only by the public-key derivation function.</p>
+</div>
+<div class="paragraph">
+<p>Not only does address reuse degrade the security of your private keys,
+it also degrades your privacy, as discussed in <a href="#ch03">[ch03]</a>. Suppose again
+that John has other outputs to PKH<sub>1</sub>. If Acme Insurances forces the
+cafe to reveal that it was John who bought the cookie, Acme would also
+know that all outputs to PKH<sub>1</sub> belong to John. This goes for change
+outputs, too.</p>
+</div>
+<div class="paragraph">
+<p>Luckily, the wallets will automate key creation for you, so you usually
+don’t have to worry about key reuse. Most Bitcoin wallets on the market
+today use unique addresses for all incoming payments.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_account_based_and_value_based_systems">5.2.4. Account-based and value-based systems</h4>
+<div class="paragraph">
+<p>Let’s reflect on the changes we’ve made. We’ve moved from an
+<em>account-based</em> system to a <em>value-based</em> system.</p>
+</div>
+<div class="paragraph">
+<p>An account-based system keeps track of how much money each account has.
+This is the type of system we had before this chapter. Lisa had to
+calculate the balance of a PKH before deciding whether to allow a
+payment.</p>
+</div>
+<div class="paragraph">
+<p>A value-based system keeps track of “coins” instead. In this chapter,
+Lisa needs to verify that the specific coins (UTXOs) exist before
+deciding whether to allow the payment. She doesn’t have to verify the
+balance of any PKH. Bitcoin is also a value-based system.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_script">5.3. Script</h3>
+<div class="paragraph">
+<p>I haven’t been totally honest about what a transaction contains. A
+transaction’s output doesn’t contain a PKH, but part of a small computer
+program that <em>contains</em> a PKH. This part of the program is called a
+<em>pubkey script</em>. The input that spends the output contains the other
+part of this program. This other part, the signature and the public key
+in John’s transaction, is called a <em>signature script</em> (<a href="#fig0511">Figure 11</a>).</p>
+</div>
+<div id="fig0511" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-11.svg" alt="05 11" width="75%">
+</div>
+<div class="title">Figure 11. The signature script is the first part of a program. The pubkey script in the spent output is the second part. If the complete program results in <code>OK</code>, then the payment is authorized to spend the output.</div>
+</div>
+<div class="paragraph">
+<p>This tiny program, written in a programming language called Script,
+contains the instructions to Lisa on how to verify that the spending
+transaction is authentic. If Lisa performs all the instructions in the
+program without errors, and the end result is <code>OK</code>, then the
+transaction is authentic.</p>
+</div>
+<div class="paragraph">
+<p>The ability to write a computer program inside a transaction is useful
+for various use cases. We’ll cover several use cases of customized
+programs throughout this book.</p>
+</div>
+<div class="paragraph">
+<p>Suppose Lisa wants to verify input 0 of John’s transaction. She’ll run
+this program from top to bottom. A <em>stack</em> is used to keep track of
+intermediate calculation results. This stack is like a pile of stuff.
+You can add stuff on top of the stack, and you can take stuff off the
+top.</p>
+</div>
+<div class="paragraph">
+<p>Let’s start: look at <a href="#fig0512">Figure 12</a>. The first (top) item in the program is
+a signature, which is just data. When you encounter ordinary data,
+you’ll put it on the stack. Lisa puts the signature on the previously
+empty stack. Then she encounters a public key, which is also just data.
+She puts that on the stack as well. The stack now contains a signature
+and a public key, with the public key on top.</p>
+</div>
+<div id="fig0512" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-12.svg" alt="05 12" width="75%">
+</div>
+<div class="title">Figure 12. Adding a signature and a public key to the stack</div>
+</div>
+<div class="paragraph">
+<p>The next item in the program is <code>OP_DUP</code> (<a href="#fig0513">Figure 13</a>). This isn’t just
+data—this is an operator. An operator makes calculations based on items
+on the stack and, in some cases, the transaction being verified. This
+specific operator is simple: it means “Copy the top item on the stack
+(but keep it on the stack), and put the copy on top.” Lisa follows
+orders and copies the public key on the stack. You now have two public
+keys and a signature on the stack.</p>
+</div>
+<div id="fig0513" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-13.svg" alt="05 13" width="100%">
+</div>
+<div class="title">Figure 13. Copying the public key on the stack, and adding a PKH</div>
+</div>
+<div class="paragraph">
+<p>The next item is also an operator, <code>OP_HASH160</code> (also shown in
+<a href="#fig0513">Figure 13</a>). This means “Take the top item off the stack and hash it
+using SHA256+RIPEMD160, and put the result on the stack.”</p>
+</div>
+<div class="paragraph">
+<p>Cool. Lisa takes the top public key from the stack, hashes it, and puts
+the resulting PKH on top of the stack. This happens to be John’s PKH<sub>1</sub>
+because it was John’s public key that Lisa hashed.</p>
+</div>
+<div class="paragraph">
+<p>The next item is just data (<a href="#fig0514">Figure 14</a>): it’s PKH<sub>1</sub>, which is the
+rightful recipient of the 8 CT. Lisa puts PKH<sub>1</sub> on the stack.</p>
+</div>
+<div id="fig0514" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-14.svg" alt="05 14" width="75%">
+</div>
+<div class="title">Figure 14. Adding PKH<sub>1</sub> to the stack and comparing the two PKH items</div>
+</div>
+<div class="paragraph">
+<p>Next up is another operator, <code>OP_EQUALVERIFY</code>. This means “Take the top
+two items from the stack and compare them. If they’re equal, continue to
+the next program instruction; otherwise, quit the program with an
+error.” Lisa takes the two PKH items from the top of the stack and
+verifies that they’re equal. They <em>are</em> equal, which means the public
+key John has provided in his transaction’s signature script matches the
+PKH that was set as the recipient in the output.</p>
+</div>
+<div id="fig0515" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-15.svg" alt="05 15" width="100%">
+</div>
+<div class="title">Figure 15. Verifying the signature using John’s transaction and the rest of the items from the stack</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">John’s cleaned transaction</div>
+<div class="paragraph">
+<p><span class="image"><img src="images/ch05/u05-02.svg" alt="u05 02"></span></p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The last operator, <code>OP_CHECKSIG</code> (<a href="#fig0515">Figure 15</a>), means “Verify that the
+top public key on the stack and the signature that’s next on the stack
+correctly sign the transaction. Put <code>true</code> or <code>false</code> on top of the
+stack depending on the verification outcome.” Lisa takes John’s
+transaction and cleans out all the signature script from all inputs. She
+uses the top two items from the stack, which are John’s public key and
+his signature, to verify that the signature signs the cleaned
+transaction. When John signed this transaction, he did so without any
+signature data in the inputs. This is why Lisa must first clean out the
+signature script data from the transaction before verifying the
+signature. The signature was good, so Lisa puts <code>true</code>, meaning
+<code>OK</code>, back on the stack.</p>
+</div>
+<div class="paragraph">
+<p>Look, the program is empty! Nothing is left to do. After running a
+program, the top item on the stack reveals whether the spending of the
+output is authentic. If <code>true</code>—<code>OK</code>—then the spending is authorized. If
+<code>false</code>—<code>not OK</code>—then the transaction must be declined. Lisa looks at
+the top item on the stack, and there’s an <code>OK</code>. Lisa now knows that
+John’s input with index 0 is good (<a href="#fig0516">Figure 16</a>).</p>
+</div>
+<div id="fig0516" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-16.svg" alt="05 16" width="50%">
+</div>
+<div class="title">Figure 16. The first input is verified.</div>
+</div>
+<div class="paragraph">
+<p>Lisa does the same checks for the other input, with index 1, of John’s
+transaction. If this program also ends with <code>OK</code>, then the entire
+transaction is valid, and she can add the transaction to the
+spreadsheet.</p>
+</div>
+<div class="sect3">
+<h4 id="_why_use_a_program">5.3.1. Why use a program?</h4>
+<div class="paragraph important">
+<p>The pubkey script part of the program stipulates exactly what the
+spending transaction needs to provide to spend the output. The only way
+to spend an output is to provide a signature script that makes the
+program finish with an OK on top of the stack.</p>
+</div>
+<div class="paragraph">
+<p>In the example I just presented, the only acceptable signature script is
+a valid signature followed by the public key corresponding to the PKH in
+the pubkey script.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Operators</div>
+<div class="paragraph">
+<p>A lot of useful operators can be used to create all kinds of fancy
+programs. Check out <a href="#web-op-codes">[web-op-codes]</a> for a complete list.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Using a programming language, Script, in the transactions makes them
+very flexible. You’ll see several different types of Script programs
+throughout this book. If the transactions didn’t use a programming
+language, all use cases would have to be invented up front. The Script
+language lets people come up with new use cases as they please.</p>
+</div>
+<div class="paragraph">
+<p>I’ve already mentioned that “pay to PKH” isn’t the only way to pay. You
+can write any program in the pubkey script. For example, you can write a
+pubkey script that ends with <code>OK</code> only if the signature script provides
+two numbers whose sum is 10. Or, you can write a program that ends with
+<code>OK</code> only if the signature script contains the SHA256 pre-image of a
+hash. Consider this example:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>OP_SHA256
+334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7
+OP_EQUAL</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will allow anyone who knows an input to SHA256 that results in
+the hash <code>334d016f…d42c87b7</code> to spend the output. You happen to know
+from <a href="#ch02">[ch02]</a> that the text “Hello!” will give this specific
+output. Suppose your signature script is</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Hello!</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Run the program to convince yourself that it works and that all
+signature scripts that don’t contain a correct pre-image fail.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_why_signature_script_and_pubkey_script">5.3.2. Why signature script and pubkey script?</h4>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Odd names</div>
+<div class="paragraph">
+<p>Bitcoin developers commonly use the term <em>scriptPubKey</em> for the pubkey
+script and <em>scriptSig</em> for the signature script because that’s how
+they’re named in the Bitcoin Core source code.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You might wonder why we call the output script part <em>pubkey script</em> when
+it usually doesn’t contain a public key. Likewise, the input script is
+called <em>signature script</em>, but it doesn’t only contain a signature.</p>
+</div>
+<div class="paragraph">
+<p>The pubkey script in Bitcoin transactions used to contain an actual
+public key, and the signature script used to contain the signature only.
+It was more straightforward then. A typical pubkey script looked like
+this</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>&lt;public key&gt; OP_CHECKSIG</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>and the signature script like this:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>&lt;signature&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Things have changed since then, but the names <em>signature script</em> and
+<em>pubkey script</em> remain. Most developers today look at this more
+abstractly: the pubkey script can be regarded as a public key, and the
+signature script can be regarded as a signature, but not necessarily
+ordinary public keys and signatures. In a normal payment today, the
+“public key” is the script that needs to be satisfied by the
+“signature,” the signature script. Of course, the “public key” here
+contains some operators and a PKH, but we can still view it as a public
+key on a conceptual level. The same goes for the signature script, which
+we can view as a signature on a conceptual level.</p>
+</div>
+</div>
+</div>
+<div class="sect2 periscope">
+<h3 id="_where_were_we">5.4. Where were we?</h3>
+<div class="paragraph">
+<p>This chapter covers most aspects of transactions. <a href="#fig0517">Figure 17</a> is a
+reminder from <a href="#ch01">[ch01]</a> of how a typical transaction is sent.</p>
+</div>
+<div class="paragraph">
+<p>We’ve gone through the anatomy of the transaction and are now discussing
+different ways to authenticate, or “sign,” transactions.</p>
+</div>
+<div id="fig0517" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-17.svg" alt="05 17" width="50%">
+</div>
+<div class="title">Figure 17. This chapter covers transactions. Right now, we’re exploring different ways to authenticate transactions.</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fancy_payment_types">5.5. Fancy payment types</h3>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Pay to hash</div>
+<div class="literalblock">
+<div class="content">
+<pre>OP_SHA256
+334d…87b7
+OP_EQUAL</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>John’s transaction just spent two <em>pay-to-public-key-hash</em> (p2pkh)
+outputs. But as noted earlier, other payment types are possible—for
+example, pay-to-hash, where you pay to a SHA256 hash. To spend this
+output, you need to provide the hash’s pre-image in the spending input’s
+signature script. We’ll explore some more interesting and useful ways to
+authenticate transactions.</p>
+</div>
+<div class="sect3">
+<h4 id="_multiple_signatures">5.5.1. Multiple signatures</h4>
+<div class="paragraph">
+<p>In p2pkh, the recipient generates a cookie token address that’s handed
+over to the sender. The sender then makes a payment to that address.</p>
+</div>
+<div class="paragraph">
+<p>But what if the recipient would like their money secured by something
+other than a single private key? Suppose Faiza, Ellen, and John want to
+raise money for charity from their coworkers.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-04.svg" alt="u05 04">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>They could use a normal p2pkh address that their supporters donate
+cookie tokens to. They could let, say, Faiza have control over the
+private key, so only she could spend the funds. This approach has a few
+problems:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If Faiza dies, the money might be lost forever. Ellen and John won’t
+be able to recover the funds.</p>
+</li>
+<li>
+<p>If Faiza is sloppy with backup, the money might get lost. Again, no
+one will be able to recover the funds.</p>
+</li>
+<li>
+<p>If Faiza is sloppy with her private key security, the money might
+get stolen.</p>
+</li>
+<li>
+<p>Faiza might run away with the money.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A lot of risks seem to be inherent in this setup, but what if Faiza
+gives the private key to her two charity partners? Then, all partners
+can spend the money. This will solve problems 1 and 2, but problems 3
+and 4 would be worse because now any of the three partners might be
+sloppy with private-key security or run away with the money.</p>
+</div>
+<div class="paragraph">
+<p>This organization consists of three people. It would be better if these
+three people could <em>share the responsibility and the power over the
+money</em> somehow. Thanks to the Script programming language, they can
+accomplish this.</p>
+</div>
+<div class="paragraph">
+<p>They can create one private key each and demand that two of the three
+keys must sign the transaction to spend the charity funds. (<a href="#fig0518">Figure 18</a>).</p>
+</div>
+<div id="fig0518" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-18.svg" alt="05 18" width="50%">
+</div>
+<div class="title">Figure 18. Multisignature setup between Faiza, Ellen, and John. Two of the three keys are needed to spend money.</div>
+</div>
+<div class="paragraph">
+<p>This brings some good properties to the charity fundraising account:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If one of the three keys is stolen, the thief can’t steal the money.</p>
+</li>
+<li>
+<p>If one of the three keys is lost due to sloppy backups or death,
+then the other two keys are enough to spend the money.</p>
+</li>
+<li>
+<p>Out of the three partners, no single person can singlehandedly run
+away with the money.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="#fig0519">Figure 19</a> shows a script program that enforces the two-of-three rule.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Bug</div>
+<div class="paragraph">
+<p>There is a bug in Bitcoin software that causes <code>OP_CHECKMULTISIG</code> to
+need an extra dummy item first in the signature script.</p>
+</div>
+</div>
+</div>
+<div id="fig0519" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-19.svg" alt="05 19" width="50%">
+</div>
+<div class="title">Figure 19. A program that enforces two signatures out of three possible keys. The secret sauce is <code>OP_CHECKMULTISIG</code>.</div>
+</div>
+<div class="paragraph">
+<p>The <code>OP_CHECKMULTISIG</code> operator instructs Lisa to verify that the two
+signatures in the signature script are made with the keys in the pubkey
+script. Lisa runs the program in <a href="#fig0520">Figure 20</a>.</p>
+</div>
+<div id="fig0520" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-20.svg" alt="05 20" width="75%">
+</div>
+<div class="title">Figure 20. Moving some data items to the stack</div>
+</div>
+<div class="paragraph">
+<p>The top eight data items in the program are put on the stack. Then the
+only operator, <code>OP_CHECKMULTISIG</code>, runs, as illustrated in
+<a href="#fig0521">Figure 21</a>.  <code>OP_CHECKMULTISIG</code> takes a number, <code>3</code> in this case,
+from the stack and then expects that number of public keys from the
+stack followed by another number. This second number dictates how many
+signatures are needed to spend the money. In this case, the number is
+<code>2</code>. Then, the operator takes the expected number of signatures from
+the stack, followed by the dummy mentioned earlier. You don’t use the
+dummy item.</p>
+</div>
+<div id="fig0521" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-21.svg" alt="05 21" width="75%">
+</div>
+<div class="title">Figure 21. Executing the <code>OP_CHECKMULTISIG</code> operator, which results in OK this time</div>
+</div>
+<div class="paragraph">
+<p><code>OP_CHECKMULTISIG</code> uses all this information and the transaction to
+determine whether enough signatures are made and verifies those
+signatures. If everything is <code>OK</code>, it puts <code>OK</code> back on the stack. This
+is where the program ends. Because the top item on the stack is <code>OK</code>,
+the output spending is authorized.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-05.svg" alt="u05 05">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>A coworker who wants to donate cookie tokens to the charity needs to get
+their wallet to write the pubkey script in <a href="#fig0519">Figure 19</a> into the donation
+transaction’s output. This presents a few problems:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The coworker’s wallet knows how to make only p2pkh outputs. The
+wallet must be modified to understand multisignature outputs and
+include a user interface to make this kind of output understandable to
+users.</p>
+</li>
+<li>
+<p>A sender usually doesn’t need to know how the recipient’s money is
+protected. The sender doesn’t care if it’s multisignature, p2pkh, or
+anything else. They just want to pay.</p>
+</li>
+<li>
+<p>Transactions usually need to pay a fee to be processed (more on this
+in <a href="#ch07">[ch07]</a>). This fee generally depends on how big the transaction
+is, in bytes. A big pubkey script causes the sender to pay a
+higher fee. This isn’t fair because it’s the recipient who wants to
+use this fancy, expensive feature. The recipient, not the sender,
+should pay for this luxury.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can fix all this with a small change to how the programs are run.
+Some developers among your coworkers invent something called
+<em>pay-to-script-hash</em> (p2sh).</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="pay-to-script-hash">5.5.2. Pay-to-script-hash</h4>
+<div class="paragraph">
+<p>We’ve discussed how p2pkh hides the public key from the sender, who gets
+a hash of the public key to pay to instead of the public key itself.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">BIP16</div>
+<div class="paragraph">
+<p>This type of payment was introduced in 2012 in BIP16.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>p2sh takes this idea even further—it hides the script program. Instead
+of giving a big, complicated pubkey script to the sender, you give them
+just the hash of the script. The sender then makes a payment to that
+hash and leaves it up to the recipient to provide the script later, when
+the recipient wants to spend the money.</p>
+</div>
+<div class="paragraph">
+<p>Suppose again that Faiza, Ellen, and John want to raise money for
+charity, and they want a multisignature setup to protect their money
+(<a href="#fig0522">Figure 22</a>).</p>
+</div>
+<div id="fig0522" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-22.svg" alt="05 22" width="75%">
+</div>
+<div class="title">Figure 22. Overview of p2sh. The pubkey script is simple. The signature script is special because it contains a data item that contains a program.</div>
+</div>
+<div class="paragraph">
+<p>To verify this transaction in full, you need new software. We’ll talk
+about how this new software verifies this transaction in a moment.
+First, let’s see how the old software would handle this transaction.</p>
+</div>
+<div class="sect4">
+<h5 id="_old_software">Old software</h5>
+<div class="paragraph">
+<p>What if the person verifying the transaction hasn’t upgraded their
+software to the bleeding-edge version that supports verifying p2sh
+payments? The developers made this forward-compatible, meaning old
+software won’t reject these new transactions.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Why verify?</div>
+<div class="paragraph">
+<p>The cafe isn’t involved in this transaction, so why would the cafe
+want to verify it? The cafe wants to know whether Lisa is doing
+her job. It’s in the cafe’s interest to know if something fishy is
+going on.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let’s pretend the cafe runs old software to verify this transaction in
+the spreadsheet (<a href="#fig0523">Figure 23</a>). Old software will do what it’s always
+been doing—push the stuff in the signature script and then run the
+pubkey script.</p>
+</div>
+<div class="paragraph">
+<p>When the program is finished, the top item on the stack is <code>true</code>, or
+<code>OK</code>. This means the payment is valid according to this old software.</p>
+</div>
+<div id="fig0523" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-23.svg" alt="05 23" width="100%">
+</div>
+<div class="title">Figure 23. Verifying the p2sh transaction using old software</div>
+</div>
+<div class="paragraph">
+<p>You might recognize the pubkey script from the earlier example, when you
+could pay money to a pre-image of a hash. That’s what happened here,
+too, but with a different cryptographic hash function.</p>
+</div>
+<div class="paragraph">
+<p>The old software interprets this program as a payment to a hash. Whoever
+can show a pre-image of this hash gets the money. The actual
+multisignature program contained in the redeem script never runs.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="p2sh-new-software">New software</h5>
+<div class="paragraph">
+<p>Suppose the cafe just upgraded its software and wants to verify this
+transaction again. Let’s see how that happens.</p>
+</div>
+<div class="paragraph">
+<p>The new software looks at the pubkey script to determine if this
+transaction is spending a p2sh output. It looks for this pattern:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>OP_HASH160
+20 byte hash
+OP_EQUAL</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If the pubkey script has this exact pattern—the p2sh pattern—the
+software will treat the program differently. First, it will perform the
+same seven steps as the old software, shown in <a href="#fig0523">Figure 23</a>, but it will
+save the stack after step 2. Let’s call this the <em>saved stack</em>. If the
+first seven steps result in <code>OK</code>, then the stack is replaced by the
+saved stack; and the top item, <code>redeemScript</code>, is taken off the stack
+(<a href="#fig0524">Figure 24</a>).</p>
+</div>
+<div id="fig0524" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-24.svg" alt="05 24" width="75%">
+</div>
+<div class="title">Figure 24. The stack is replaced by the saved stack, and <code>redeemScript</code> is taken off the stack.</div>
+</div>
+<div class="paragraph">
+<p><code>redeemScript</code> is a data item that contains a program, as previously
+described. This program is now entered into the program area and begins
+to execute. It executes from now on as if it was an old-style payment
+(<a href="#fig0525">Figure 25</a>).</p>
+</div>
+<div id="fig0525" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-25.svg" alt="05 25" width="100%">
+</div>
+<div class="title">Figure 25. Executing the program contained in the redeem script</div>
+</div>
+<div class="paragraph">
+<p>It’s important for Lisa that she runs the latest software. If Lisa ran
+old software, she would verify only that the redeem script hash matches
+the script hash in the pubkey script. Anyone who happened to know the
+redeem script—for example, Faiza—would be able to take the money in the
+spreadsheet. Lisa would gladly confirm that transaction. This would
+cause problems if any verifying nodes ran new software. Those nodes
+wouldn’t accept the transaction in the spreadsheet because it’s invalid
+according to the new rules. The entire spreadsheet would then be invalid
+and unacceptable for new nodes from that point forward. We’ll discuss
+this situation more in <a href="#ch11">[ch11]</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_pay_to_script_hash_addresses">5.5.3. Pay-to-script-hash addresses</h4>
+<div class="paragraph">
+<p>Faiza, Ellen, and John have created their two-of-three multisignature
+redeem script:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>2
+022f52f2868dfc7ba9f17d2ee3ea2669f1fea7aea3df6d0cb7e31ea1df284bdaec
+023d01ba1b7a1a2b84fc0f45a8a3a36cc7440500f99c797f084f966444db7baeee
+02b0c907f0876485798fc1a8e15e9ddabae0858b49236ab3b1330f2cbadf854ee8
+3
+OP_CHECKMULTISIG</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>They now want people to pay to the redeem script’s SHA256+RIPEMD160
+hash:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>04e214163b3b927c3d2058171dd66ff6780f8708</pre>
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-06.svg" alt="u05 06">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>How do Faiza, Ellen, and John ask people to pay them? What do they print
+on the flyers so coworkers can pay to their script hash? Let’s look at a
+couple of their options:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Print the script hash as is, and inform coworkers that this is a
+hash of a redeem script. This would expose the coworkers to the
+unnecessary risk of typing errors, just as with payments to raw PKHs,
+as discussed in <a href="#ch03">[ch03]</a>.</p>
+</li>
+<li>
+<p>Base58check-encode the script hash just as in <a href="#ch03">[ch03]</a>, which would
+generate an address like <code>1SpXyW…RMmEMZ</code>. If this address was printed
+on the flyers, they would also need to inform users that they must
+create a p2sh output instead of a normal p2pkh.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In both cases, if the donor erroneously makes a p2pkh payment using
+the printed hash or address, no one can spend the money because no
+private key corresponds to this false PKH.</p>
+</div>
+<div class="paragraph">
+<p>These two options seem neither safe nor practical. Instead, let’s
+introduce a new address format for p2sh, the <em>p2sh address</em>
+(<a href="#fig0526">Figure 26</a>). This format is similar to normal p2pkh addresses. It
+uses the base58check encoding scheme, just as normal addresses did.</p>
+</div>
+<div id="fig0526" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-26.svg" alt="05 26" width="75%">
+</div>
+<div class="title">Figure 26. Creating a p2sh address. The difference from normal addresses is the version, which is <code>05</code> for p2sh addresses instead of <code>00</code>.</div>
+</div>
+<div class="paragraph">
+<p>This process is almost the same as for p2pkh addresses. The only
+difference is that the version is <code>05</code> instead of <code>00</code>. This will cause
+the address to begin with a <code>3</code> instead of a <code>1</code>.</p>
+</div>
+<div class="paragraph">
+<p>Because of this change and how base58 works—using integer division by
+58 successively—the last remainder will always be 2. If you’re
+interested, <a href="#fig0527">Figure 27</a> provides the base58 encoding of the versioned
+and checksummed script hash of Faiza’s, Ellen’s, and John’s redeem
+script.</p>
+</div>
+<div id="fig0527" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-27.svg" alt="05 27" width="75%">
+</div>
+<div class="title">Figure 27. Encoding a versioned and checksummed script hash with base58. The result will <em>always</em> start with the character <code>3</code>.</div>
+</div>
+<div class="paragraph">
+<p>This last remainder <code>2</code> will translate to <code>3</code> in base58’s
+character-lookup table. This <code>3</code> character will become the first
+character when the base58 process performs the reversing step. This
+causes all p2sh addresses to start with a <code>3</code>. This is how users
+identify them as p2sh addresses and not, for example, p2pkh addresses.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-07.svg" alt="u05 07">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Faiza, Ellen, and John can now print <code>328qTX…wrB2ag</code> on their flyer.
+When a coworker scans this flyer’s QR code, their wallet will recognize
+the address as a p2sh address because it starts with a <code>3</code>. The wallet
+will base58check-decode the address and create a proper p2sh output:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>OP_HASH160
+04e214163b3b927c3d2058171dd66ff6780f8708
+OP_EQUAL</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This concludes our discussion of programmable transactions. You’ve
+learned that transactions can express a lot of different rules for how
+to spend money. Note that you can’t constrain where spent money goes,
+only what’s needed in the input to spend the money. The pubkey script
+makes the rules for what’s required in the signature script. Later in
+the book, we’ll revisit transactions to talk about more fancy stuff you
+can do with them, such as make spending impossible until a certain
+future date.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="lock-time-and-sequence-numbers">5.6. More stuff in transactions</h3>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-08.svg" alt="u05 08">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We still haven’t covered all the contents of a transaction. A few more
+pieces of information belong in transactions, including version, lock
+time, and sequence numbers:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Version</dt>
+<dd>
+<p>Each transaction has a version. As of this writing, there
+are two versions: 1 and 2.</p>
+</dd>
+<dt class="hdlist1">Sequence number</dt>
+<dd>
+<p>A 4-byte number on each input. For most
+transactions, this is set to its maximum value <code>ffffffff</code>. This is an
+old, disabled feature that’s being repurposed for new functionality.</p>
+</dd>
+<dt class="hdlist1">Lock time</dt>
+<dd>
+<p>A point in time before which the transaction can’t be
+added to the spreadsheet. If the lock time is 0, the transaction is
+always allowed to be added to the spreadsheet.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>I include this sparse information here for completeness. We’ll discuss
+these features more in <a href="#ch09">[ch09]</a>, when you know more about Bitcoin’s
+fundamentals.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_rewards_and_coin_creation">5.7. Rewards and coin creation</h3>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-09.svg" alt="u05 09">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You might be wondering where all the cookie tokens come from in the
+first place. Remember in <a href="#ch02">[ch02]</a>, when I described how Lisa gets
+rewarded with 7,200 CT daily? She would insert a new row in the
+spreadsheet every day, paying 7,200 new CT to herself.</p>
+</div>
+<div class="paragraph">
+<p>Now she still rewards herself with 7,200 CT per day, but in a slightly
+different way. Every day she adds a special transaction to the
+spreadsheet called a <em>coinbase transaction</em> (<a href="#fig0528">Figure 28</a>).</p>
+</div>
+<div id="fig0528" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-28.svg" alt="05 28" width="75%">
+</div>
+<div class="title">Figure 28. Lisa rewards herself every day with a coinbase transaction.</div>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Rewards</div>
+<div class="paragraph">
+<p>Rewards in Bitcoin are paid using coinbase transactions roughly every
+10 minutes to the nodes securing the Bitcoin blockchain. This will be
+covered in <a href="#ch07">[ch07]</a>.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The coinbase transaction’s input is called the <em>coinbase</em>. The only
+way to create new coins is to add a coinbase transaction to the
+spreadsheet. New coins are created as rewards to Lisa for performing her
+valuable work.</p>
+</div>
+<div class="paragraph important">
+<p>All transactions can be traced back to one or more coinbase
+transactions by following the txid references in transaction inputs. The
+transactions form a <em>transaction graph</em> (<a href="#fig0529">Figure 29</a>). They’re
+interconnected through the txids.</p>
+</div>
+<div id="fig0529" class="imageblock">
+<div class="content">
+<img src="images/ch05/05-29.svg" alt="05 29" width="100%">
+</div>
+<div class="title">Figure 29. The transaction graph. All transactions descend from one or more coinbase transactions.</div>
+</div>
+<div class="paragraph">
+<p>John’s transaction stems from four different coinbase transactions. To
+verify John’s transaction, you must follow all txids from John’s
+transaction and verify all the transactions along the way until you’ve
+reached the four coinbase transactions. This is what the UTXO set helps
+verifiers with. It keeps track of all already-verified UTXOs. The
+verifiers only have to follow the txids (usually only one step) until it
+reaches an output that’s in the UTXO set.</p>
+</div>
+<div class="paragraph">
+<p>The coinbase transactions must also be verified so there is exactly one
+coinbase per 24 hours, and each coinbase creates exactly 7,200 new
+cookie tokens.</p>
+</div>
+<div class="sect3">
+<h4 id="_transition_from_version_4_0">5.7.1. Transition from version 4.0</h4>
+<div class="paragraph">
+<p>You might be wondering how the coworkers updated from the old
+spreadsheet—as it was in release 4.0—to the one that contains
+transactions. What happened to the already-existing cookie tokens in the
+spreadsheet?</p>
+</div>
+<div class="paragraph">
+<p>They all agreed on a time slot when the upgrade would take place. During
+this time slot, Lisa created a single, huge transaction with one output
+per PKH in the spreadsheet. This transaction looks like a coinbase
+transaction but with a lot of outputs. Anyone can keep a version of the
+old spreadsheet and verify that this new transaction contains the exact
+same outputs as the old UTXO set. New verifiers can’t be sure it went
+well, though—they’ll have to trust Lisa with that.</p>
+</div>
+<div class="paragraph">
+<p>Note that this isn’t at all how it happened in Bitcoin, which was
+designed for transactions from the beginning. The “initial state” in
+Bitcoin was an empty UTXO set. No one had any bitcoins.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="trust-in-lisa">5.8. Trust in Lisa</h3>
+<div class="paragraph">
+<p>In this chapter, we’ve formalized the payment process—for example, the
+transaction from the wallet must be sent as an attachment in an email to
+Lisa. Lisa can take advantage of this formal process to automate all her
+work. She writes a computer program that reads transactions from her
+email inbox and automatically verifies them, maintains the UTXO set, and
+adds transactions to the spreadsheet. Lisa can relax and just watch her
+computer program do the job for her. Nice.</p>
+</div>
+<div class="paragraph">
+<p>But now you may wonder if she’s still worth the 7,200 CT per day in
+rewards. She doesn’t work actively with verification anymore; she’s just
+sitting there, twiddling her thumbs. Let’s take a moment to reflect on
+what we’re rewarding her for. She’s rewarded not to perform boring
+manual work but to perform correct, honest confirmations of transactions
+and not censor them. That’s what gives you and your coworkers value. If
+Lisa writes a computer program to do the heavy lifting, it doesn’t make
+the payment processing less correct or honest.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">We trust that Lisa doesn’t …</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Censor transactions</p>
+</li>
+<li>
+<p>Revert transactions</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Transactions solve the problem with Lisa arbitrarily changing stuff in
+the spreadsheet. The only things you have to trust Lisa with now are
+to</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Not censor transactions</dt>
+<dd>
+<p>She must add to the spreadsheet any valid
+transactions that she receives over email.</p>
+</dd>
+<dt class="hdlist1">Not revert transactions</dt>
+<dd>
+<p>To <em>revert</em> a transaction is to remove it
+from the spreadsheet.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>If Lisa decides she doesn’t like Faiza, and she also happens to know
+some of Faiza’s UTXOs, she can refuse to process Faiza’s transactions
+that try to spend those UTXOs. This means Faiza can’t spend her money.
+Lisa is censoring Faiza’s transactions.</p>
+</div>
+<div class="paragraph">
+<p>If Lisa removes a transaction, whose outputs are all unspent, from the
+spreadsheet, it <em>might</em> be noticed by already-running verifiers. But
+verifiers that started after the reverting won’t notice because the
+spreadsheet is still valid according to the rules.</p>
+</div>
+<div class="paragraph">
+<p>Suppose Lisa reverts John’s transaction from
+<a href="#pay-using-a-transaction">Section 5.2</a>. Lisa removes John’s transaction from the
+spreadsheet. No one has spent any of the outputs of John’s transaction
+yet, so the spreadsheet doesn’t contain any transactions that become
+invalid when John’s transaction is deleted.</p>
+</div>
+<div class="paragraph">
+<p>An already-running verifier—for example, the cafe—won’t notice because
+it just watches the spreadsheet for added transactions at the end. It
+has already verified John’s transaction and updated its private UTXO
+set. The cafe trusts Lisa to not delete transactions, so it never
+re-verifies the spreadsheet</p>
+</div>
+<div class="paragraph">
+<p>Furthermore, suppose a new coworker, Vera, starts to build her own
+UTXO set from the spreadsheet, which now lacks John’s
+transaction. This UTXO set will differ from the cafe’s UTXO set. From
+Vera’s viewpoint, John still has the money and hasn’t paid 10 CT to
+the cafe. The outputs that John spent in his transaction appear
+unspent to Vera because they’re in Vera’s UTXO set.</p>
+</div>
+<div class="paragraph">
+<p>We now have Vera, who thinks John still has the money; Lisa, who
+deleted the transaction; and the cafe, which thinks it got 10 CT from
+John. So far, no one has noticed Lisa’s crime. It will remain
+unnoticed as long as nobody tries to spend an output from John’s
+transaction. This could be the cafe spending its 10 CT or John
+spending his 3 CT change.</p>
+</div>
+<div class="paragraph">
+<p>Let’s say the cafe wants to pay its rent to the company. It needs to
+spend, among other outputs, the output of John’s transaction. The cafe
+creates a transaction that spends the output, signs it, and sends it
+to Lisa. Lisa knows she’s deleted John’s transaction and her crime
+will now be noticed. If Lisa decides to confirm the cafe’s
+transaction, then she’ll make the entire spreadsheet invalid, and Vera
+and all other verifiers will reject the spreadsheet as a whole. Not
+good. If Lisa decides to reject the transaction, which is the more
+sensible thing for her to do, the cafe will notice because its
+transaction never confirms.</p>
+</div>
+<div class="paragraph">
+<p>When the cafe notices, it can’t prove that John’s transaction was ever
+in the spreadsheet. Lisa can’t prove that John’s transaction was never
+in the spreadsheet. It’s word against word. We’ll solve this problem
+in <a href="#ch06">[ch06]</a>.</p>
+</div>
+<div class="paragraph">
+<p>It isn’t obvious why Lisa would delete John’s transaction. Maybe John
+pays Lisa to do it. It would probably make more sense for Lisa to
+cheat with her own money instead. Let’s say she buys a cookie in the
+cafe, and when the cafe has seen the transaction from Lisa to the cafe
+in the spreadsheet, it gives a cookie to Lisa. Yummy. Then Lisa walks
+back to her desk and removes her transaction. Now she’s got a cookie
+<em>and</em> she gets to keep the money. This will, of course, be noticed
+when the cafe tries to spend the output from the removed transaction
+or the next time Lisa tries to double-spend the outputs spent by the
+removed transaction.  But as with John’s transaction, it’s word
+against word. Lisa can claim the transaction was never in the
+spreadsheet, and the cafe can claim it was. No one can prove anything.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_recap">5.9. Recap</h3>
+<div class="paragraph">
+<p>Transactions make it impossible for Lisa to steal cookie tokens from
+others. They solve the problem by making all signatures public in the
+spreadsheet. Users’ wallets create and sign transactions that Lisa
+verifies and appends to the spreadsheet.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-10.svg" alt="u05 10" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>Transactions have inputs and outputs. An output of a transaction
+contains the last part of a Script program. When the output is spent,
+the input that’s spending the output must provide the first part of the
+program.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-11.svg" alt="u05 11" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>Lisa runs the program. If the program ends with <code>OK</code>, then the
+spending of <em>that</em> output is authorized. If the programs of all inputs
+in a transaction end with <code>OK</code>, the entire transaction is valid, and
+Lisa adds the transaction to the spreadsheet.</p>
+</div>
+<div class="paragraph">
+<p>Once the transaction is in the spreadsheet, anyone can make the exact
+same checks as Lisa did, because she added the transaction to the
+spreadsheet exactly as she received it. If Lisa makes changes to it,
+people will notice that the spreadsheet is no longer valid because it
+contains an invalid transaction. The only things you can’t verify are
+if transactions are being censored (not added to the spreadsheet) or
+deleted from the spreadsheet. You have to trust Lisa with these two
+things for now.</p>
+</div>
+<div class="sect3">
+<h4 id="_system_changes">5.9.1. System changes</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch05/u05-12.svg" alt="u05 12">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Transactions and txid have been added to your toolbox. The
+concept-mapping table (<a href="#tab0501">Table 1</a>) shrinks by two rows: emails to
+Lisa and rows in the spreadsheet are replaced by transactions. Note
+that you still use email to send the transaction to Lisa, but the
+transaction has the same format as in Bitcoin. This is why we can
+remove the row.</p>
+</div>
+<table id="tab0501" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 1. Transactions replace emails to Lisa and rows in the spreadsheet.</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cookie tokens</th>
+<th class="tableblock halign-left valign-top">Bitcoin</th>
+<th class="tableblock halign-left valign-top">Covered in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 cookie token</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 bitcoin</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch02">[ch02]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The blockchain</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch06">[ch06]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="line-through"><strong>Email to Lisa</strong></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through">A transaction</span></strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through"><a href="#ch05">Chapter 5</a></span></strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through">A row in the spreadsheet</span></strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through">A transaction</span></strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through"><a href="#ch05">Chapter 5</a></span></strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lisa</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A miner</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch07">[ch07]</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The next chapter will take care of replacing the spreadsheet, which now
+contains transactions, with a blockchain.</p>
+</div>
+<div class="paragraph">
+<p>Let’s release version 5.0 of the cookie token system (<a href="#tab0502">Table 2</a>).</p>
+</div>
+<table id="tab0502" class="tableblock frame-all grid-all fit-content widetable">
+<caption class="title">Table 2. Release notes, cookie tokens 5.0</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Feature</th>
+<th class="tableblock halign-left valign-top">How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><span class="image gbnew"><img src="images/common/new.svg" alt="new"></span>5.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Spend multiple “coins” in one payment</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Multiple inputs in transactions</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Anyone can verify the spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Make the signatures publicly available in the transactions</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sender decides on criteria for spending the money</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Script programs inside transactions</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">4.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Easy to make payments and create new addresses</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mobile app “wallet”</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Simplified backups</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HD wallets are generated from a seed. Only the seed, 12 to 24 English
+words, needs to be backed up.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Creating addresses in insecure environments</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HD wallets can generate public key trees without ever seeing any of the
+private keys</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">3.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Safe from expensive typing errors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cookie token addresses</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privacy improvements</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A PKH is stored in the spreadsheet instead of a personal name.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_exercises">5.10. Exercises</h3>
+<div class="sect3">
+<h4 id="_warm_up">5.10.1. Warm up</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Suppose all your money is spread over three UTXOs: one with 4 CT,
+one with 7 CT, and one with 2 CT. Which of these outputs would you
+spend if you wanted to buy a cookie for 10 CT? What outputs would your
+transaction have, and what would their CT values be?</p>
+</li>
+<li>
+<p>What are txids used for in a transaction?</p>
+</li>
+<li>
+<p>Why do you usually need to add a change output in your transaction?</p>
+</li>
+<li>
+<p>Where are the signatures located in a transaction?</p>
+</li>
+<li>
+<p>Why is the public key needed in the input of a transaction if it
+spends a p2pkh output?</p>
+</li>
+<li>
+<p>Why are the signature scripts of a transaction cleaned when your
+wallet signs the transaction?</p>
+</li>
+<li>
+<p>Where are the pubkey scripts located in a transaction, and what
+do they contain?</p>
+</li>
+<li>
+<p>What’s required from a Script program (signature script + pubkey
+script) for an input to be considered authentic?</p>
+</li>
+<li>
+<p>How can you recognize a p2sh address?</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_dig_in">5.10.2. Dig in</h4>
+<div class="olist arabic">
+<ol class="arabic" start="10">
+<li>
+<p>Suppose you have 100 CT in a single output at index 7 of a
+transaction. You want to pay 10 CT to the cafe’s p2pkh address @<sub>C</sub>
+and 40 CT to Faiza, Ellen, and John’s charity’s p2sh address @<sub>FEJ</sub>.
+Construct a single transaction that does this. Please cheat by looking
+up the exact operators and program templates from this chapter. You
+don’t have to sign any inputs.</p>
+</li>
+<li>
+<p>The UTXO set contains all UTXOs. Suppose it contains 10,000 UTXOs,
+and you send a transaction to Lisa that has two inputs and five
+outputs. How many UTXOs will the UTXO set contain after the
+transaction has been confirmed?</p>
+</li>
+<li>
+<p>Create a really simple pubkey script that allows anyone to
+spend the output. What would the signature script of the spending input
+contain?</p>
+</li>
+<li>
+<p>Create a pubkey script that requires the spender to provide two
+numbers in the signature script whose sum is 10 in order to spend the
+money. An operator called <code>OP_ADD</code> takes the top two items from the
+stack and puts back the sum of those items.</p>
+</li>
+<li>
+<p>Suppose you run a full node and receive money from Faiza in a
+confirmed transaction. Can you trust that the money from Faiza is real?</p>
+</li>
+<li>
+<p>A public key is visible in the input that spends a p2pkh
+output. What’s the drawback of this if you have multiple UTXOs for the
+same PKH? What can you do to avoid this drawback?</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_summary">5.11. Summary</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Transactions have inputs and outputs, so you can spend multiple
+“coins” and pay multiple recipients in a single transaction.</p>
+</li>
+<li>
+<p>The outputs of transactions are “programmable.” The sender wallet
+decides what program to put in the output. This dictates what’s needed
+to spend the money.</p>
+</li>
+<li>
+<p>Anyone can verify the entire spreadsheet because all signatures are
+public. This greatly reduces the required trust in Lisa.</p>
+</li>
+<li>
+<p>Scripts can be used to enable multisignature capabilities—for
+example, three-of-seven capabilities. This is great for companies and
+charities.</p>
+</li>
+<li>
+<p>A new address type, a p2sh address beginning with <code>3</code>, is used to
+simplify the payment process for a lot of fancy payment types, such as
+multisignatures.</p>
+</li>
+<li>
+<p>All transactions descend from one or more coinbase transactions.
+Coinbase transactions are the only way to create money.</p>
+</li>
+<li>
+<p>Money creation is verified by any coworker to make sure Lisa creates
+exactly as much as agreed: 7,200 CT per day and halving every four
+years.</p>
+</li>
+<li>
+<p>Lisa can censor and revert transactions. You still have to trust her
+with that.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2021-05-19 10:45:14 +0200
+</div>
+</div>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</body>
+</html>

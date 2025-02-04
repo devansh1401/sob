@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Study Notes: Chapter 3 (Grokking Bitcoin)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    .question {
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .answer {
+      margin-left: 1em;
+    }
+    .figure {
+      margin: 1em 0;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+    }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Study Notes: Chapter 3 – Addresses</h1>
+
+<!-- INTRO & MOTIVATION -->
+<h2>1. Why Replace Names With Addresses?</h2>
+
+<p class="question">
+  Q1: Why can using names in our ledger (or spreadsheet) be a privacy problem?
+</p>
+<p class="answer">
+  Because outsiders (like an insurance company) could identify who is sending 
+  and receiving. They could see how many cookies (or how many bitcoins) someone 
+  is spending. It compromises personal and financial privacy.
+</p>
+
+<div class="figure">
+  <img src="images/ch03/03-02.svg" alt="03 02" width="50%">
+  <div class="figure-caption">
+    Figure 2. Acme Insurances looks at cookie-eating habits to adjust premiums.
+  </div>
+</div>
+
+<p class="question">
+  Q2: How does replacing names help?
+</p>
+<p class="answer">
+  Instead of names, the spreadsheet will list only public key information. 
+  That way, transactions appear like “<code>PublicKey_A</code> to <code>PublicKey_B</code>,” 
+  making it harder to see who is who.
+</p>
+
+
+<!-- REPLACING NAMES WITH PUBLIC KEYS (PKHs) -->
+<h2>2. Public Keys, Public Key Hashes, and Addresses</h2>
+
+<p class="question">
+  Q3: After dropping personal names, what do we store in the spreadsheet instead?
+</p>
+<p class="answer">
+  We store <strong>public key hashes (PKHs)</strong>. Each public key is first hashed 
+  with SHA256, then hashed again with RIPEMD160, resulting in a 20-byte PKH.
+</p>
+
+<div class="figure">
+  <img src="images/ch03/03-06.svg" alt="03 06" width="100%">
+  <div class="figure-caption">
+    Figure 6. The public key is hashed first with SHA256, then RIPEMD160, to produce a PKH.
+  </div>
+</div>
+
+<p class="question">
+  Q4: Why shorten public keys to 20-byte PKHs?
+</p>
+<p class="answer">
+  <ul>
+    <li><strong>Smaller size:</strong> A 160-bit PKH is smaller than a 33-byte public key, 
+      saving storage space in the ledger.</li>
+    <li><strong>Extra security:</strong> If there’s ever a vulnerability in the public key 
+      derivation, hashing adds another protective layer.</li>
+  </ul>
+</p>
+
+<p class="question">
+  Q5: Does replacing names with PKHs solve all privacy concerns?
+</p>
+<p class="answer">
+  Not entirely. PKHs are pseudonyms, but any link between a PKH and its 
+  real owner can still reveal someone's entire transaction history. 
+  So it's better, for privacy, to use multiple PKHs (or addresses).
+</p>
+
+
+<!-- TYPING ERRORS & ADDRESSES -->
+<h2>3. Avoiding Costly Typing Errors With Addresses</h2>
+
+<p>
+  Typing a 20-byte PKH by hand can be error-prone. A single character 
+  mistake can send funds into the void. Enter <strong>Bitcoin addresses</strong> 
+  (or <em>cookie token addresses</em>), which include a checksum.
+</p>
+
+<p class="question">
+  Q6: What is a Bitcoin (cookie token) address in this analogy?
+</p>
+<p class="answer">
+  It’s the PKH plus:
+  <ul>
+    <li>A <em>version byte</em> (often 0x00) at the start.</li>
+    <li>A 4-byte checksum at the end to detect typos.</li>
+    <li>Encoded in <strong>base58check</strong> to avoid confusing characters and 
+      to make addresses more user-friendly.</li>
+  </ul>
+</p>
+
+<div class="figure">
+  <img src="images/ch03/03-10.svg" alt="03 10" width="50%">
+  <div class="figure-caption">
+    Figure 10. Base58check encoding transforms a PKH into a user-friendly address.
+  </div>
+</div>
+
+<p class="question">
+  Q7: How does base58check encoding help reduce errors?
+</p>
+<p class="answer">
+  <ul>
+    <li><strong>Checksum:</strong> A 4-byte checksum (from double-SHA256) detects 
+      most typos. If the address is misspelled, the checksum won’t match.</li>
+    <li><strong>Short alphabet:</strong> It excludes look-alike characters like 
+      <code>0</code> (zero) vs. <code>O</code> (capital O), reducing confusion.</li>
+  </ul>
+</p>
+
+<div class="figure">
+  <img src="images/ch03/03-15.svg" alt="03 15" width="100%">
+  <div class="figure-caption">
+    Figure 15. Decoding an address checks the checksum, preventing 
+    funds from going to a non-existent address.
+  </div>
+</div>
+
+
+<!-- USING MULTIPLE ADDRESSES -->
+<h2>4. Boosting Privacy by Using Multiple Addresses</h2>
+
+<p class="question">
+  Q8: Can Acme Insurances still track your cookie-eating if they identify 
+  your PKH or address just once?
+</p>
+<p class="answer">
+  Potentially yes. Once they match your PKH to you, they see all your 
+  spreadsheet activity tied to that PKH. But if you frequently use new 
+  PKHs or addresses, it’s harder to link them all to you.
+</p>
+
+<div class="figure">
+  <img src="images/ch03/03-01.svg" alt="03 01" width="75%">
+  <div class="figure-caption">
+    Figure 1. Addresses (PKHs) help with privacy, but using new addresses per payment 
+    is even more private.
+  </div>
+</div>
+
+<p class="question">
+  Q9: Is there any drawback to using many addresses?
+</p>
+<p class="answer">
+  It can be a bit more complex to manage, but modern wallet software 
+  automates generating new addresses and keeping track of them, 
+  improving privacy and security.
+</p>
+
+
+<!-- SUMMARY & KEY TAKEAWAYS -->
+<h2>5. Key Takeaways / Summary</h2>
+<ul>
+  <li><strong>Replacing names:</strong> The spreadsheet or ledger now uses public key 
+      hashes instead of personal names.</li>
+  <li><strong>PKH creation:</strong> Public key → SHA256 → RIPEMD160 → 20-byte PKH 
+      reduces size and adds a layer of security.</li>
+  <li><strong>Addresses (Base58check):</strong> User-friendly format with a version byte 
+      and a 4-byte checksum to prevent loss of funds through typos.</li>
+  <li><strong>Network vs. Users:</strong> Lisa (or the Bitcoin network) sees only PKHs. 
+      Humans use addresses for safety and ease.</li>
+  <li><strong>Privacy remains partial:</strong> PKHs are <em>pseudonymous</em>. Reusing 
+      addresses can still link them to one identity, so best practice 
+      is <em>new address per transaction</em>.</li>
+</ul>
+
+<hr>
+<p><em>End of Study Notes for Chapter 3. You now understand how Bitcoin addresses 
+(PKH + base58check) reduce errors and improve privacy over using names 
+or raw public keys!</em></p>
+
+</body>
+</html>

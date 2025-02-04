@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Study Notes: Chapter 5 (Grokking Bitcoin)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    .question {
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .answer {
+      margin-left: 1em;
+    }
+    .figure {
+      margin: 1em 0;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+    }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Study Notes: Chapter 5 – Transactions</h1>
+
+<!-- 1. OVERVIEW & PROBLEMS -->
+<h2>1. Overview & Motivations</h2>
+
+<p class="question">
+  Q1: Why did the system need to replace the old “email to Lisa” approach with transactions?
+</p>
+<p class="answer">
+  Because in the old approach, only Lisa saw the email requests, giving her 
+  the power to modify entries and potentially steal. Transactions store 
+  signatures and payment details publicly, so everyone can verify they haven’t 
+  been altered, reducing trust required in Lisa.
+</p>
+
+<div class="figure">
+  <img src="images/ch05/05-01.svg" alt="05 01" width="75%">
+  <div class="figure-caption">
+    Figure 1. Bitcoin/cookie token transactions provide a standardized and verifiable way of paying.
+  </div>
+</div>
+
+<p class="question">
+  Q2: What key problems do transactions solve?
+</p>
+<p class="answer">
+  <ul>
+    <li>They let the system handle multiple coins and recipients in a single payment 
+        (more efficient than multiple spreadsheet rows).</li>
+    <li>All signatures become public, so anyone can audit the ledger and detect tampering.</li>
+    <li>They enable flexible “programmable money” with <em>scripts</em>, 
+        accommodating multi-signature or other advanced features.</li>
+  </ul>
+</p>
+
+
+<!-- 2. WHAT IS A TRANSACTION? -->
+<h2>2. What Is a Transaction?</h2>
+
+<p class="question">
+  Q3: How does a transaction replace the old “From, To, CT” approach?
+</p>
+<p class="answer">
+  A transaction includes <em>inputs</em> (referencing specific previously unspent outputs) 
+  and <em>outputs</em> (new “coins” created by the transaction). Each output specifies 
+  a script that must be satisfied to spend it. This formalizes and records 
+  the payment, and can’t be changed without invalidating the signatures.
+</p>
+
+<div class="figure">
+  <img src="images/ch05/05-04.svg" alt="05 04" width="75%">
+  <div class="figure-caption">
+    Figure 4. Example transaction with two inputs (two UTXOs) and two outputs (the actual payment + change).
+  </div>
+</div>
+
+<p class="question">
+  Q4: Why do we often have a “change output”?
+</p>
+<p class="answer">
+  Because outputs in Bitcoin-like systems must be spent entirely. If you only 
+  need 8 out of a 10 “coin” output, you’ll consume the whole 10 in your transaction 
+  and create one output for 8 (the payment) plus one for 2 (change) going back to you.
+</p>
+
+<p class="question">
+  Q5: Where does Lisa store these new transactions?
+</p>
+<p class="answer">
+  In the shared ledger (the “spreadsheet”). Each confirmed transaction is appended 
+  exactly as created by the sender, ensuring full transparency and auditability.
+</p>
+
+
+<!-- 3. CREATING AND CONFIRMING TRANSACTIONS -->
+<h2>3. Creating and Confirming Transactions</h2>
+
+<p class="question">
+  Q6: How is a transaction created and confirmed?
+</p>
+<p class="answer">
+  <ol>
+    <li><strong>Create</strong> – The wallet gathers inputs (previous unspent outputs), 
+        calculates total value, adds outputs (payment + change), 
+        then signs each input with the relevant private key.</li>
+    <li><strong>Confirm</strong> – Lisa (or a node) checks references to ensure 
+        they exist and aren’t already spent, verifies signatures, and if valid, 
+        appends the transaction to the ledger.</li>
+    <li><strong>Verify</strong> – Anyone can re-check the transaction in the ledger 
+        for correctness, ensuring Lisa hasn’t tampered with it.</li>
+  </ol>
+</p>
+
+<div class="figure">
+  <img src="images/ch05/05-06.svg" alt="05 06" width="75%">
+  <div class="figure-caption">
+    Figure 6. Lisa uses a UTXO set to detect double spends and quickly confirm or reject transactions.
+  </div>
+</div>
+
+<p class="question">
+  Q7: What is the UTXO set, and why is it useful?
+</p>
+<p class="answer">
+  The UTXO (Unspent Transaction Output) set is a list of all currently spendable outputs. 
+  It allows quick checks to confirm that a transaction’s inputs are valid and 
+  unspent, avoiding full balance calculations for each PKH.
+</p>
+
+
+<!-- 4. SCRIPTING CAPABILITY -->
+<h2>4. The Script Language</h2>
+
+<p class="question">
+  Q8: Why is there a <em>programmable</em> aspect in each transaction output?
+</p>
+<p class="answer">
+  Each output holds a small script (the <em>pubkey script</em>) dictating how 
+  it can be spent. The input that spends it provides the matching script data 
+  (the <em>signature script</em>). If the combined script checks out (returns <code>OK</code>), 
+  the spending is authorized.
+</p>
+
+<div class="figure">
+  <img src="images/ch05/05-10.svg" alt="05 10" width="75%">
+  <div class="figure-caption">
+    Figure 10. The spending input must provide the correct public key and signature to match the PKH in the output script.
+  </div>
+</div>
+
+<p class="question">
+  Q9: How do multi-signature transactions work?
+</p>
+<p class="answer">
+  Instead of “pay-to-public-key-hash,” you can use <code>OP_CHECKMULTISIG</code> and 
+  require M-of-N signatures from multiple participants, which is great for 
+  shared accounts or more secure storage.
+</p>
+
+<div class="figure">
+  <img src="images/ch05/05-19.svg" alt="05 19" width="50%">
+  <div class="figure-caption">
+    Figure 19. Example 2-of-3 multi-sig script
+  </div>
+</div>
+
+<p class="question">
+  Q10: What if the recipient’s script is large, but the sender doesn’t want to pay the higher fee for a bigger output script?
+</p>
+<p class="answer">
+  They can use <strong>pay-to-script-hash (p2sh)</strong>, which hides the actual script behind a 
+  script hash. The sender only sees and pays to the short hash, while the 
+  detailed script is provided (and paid for in bytes) by whoever later spends it.
+</p>
+
+<div class="figure">
+  <img src="images/ch05/05-22.svg" alt="05 22" width="75%">
+  <div class="figure-caption">
+    Figure 22. p2sh: The spender ultimately reveals the full redeem script.
+  </div>
+</div>
+
+<p class="question">
+  Q11: How can we identify a p2sh address?
+</p>
+<p class="answer">
+  p2sh addresses (base58check with version byte 0x05) typically start with <code>3</code> 
+  (e.g., <code>3ABC...</code>), distinguishing them from p2pkh addresses (which start with <code>1</code>).
+</p>
+
+
+<!-- 5. TRANSACTIONS AND COIN CREATION -->
+<h2>5. Coinbase & Money Creation</h2>
+
+<p class="question">
+  Q12: If all money is tracked in unspent outputs, how does new money enter the system?
+</p>
+<p class="answer">
+  Through a special <em>coinbase transaction</em>, which has a special input (“coinbase”) 
+  and no previous txid. This transaction can create new funds for Lisa (or miners in Bitcoin) 
+  as a reward for maintaining the ledger.
+</p>
+
+<div class="figure">
+  <img src="images/ch05/05-28.svg" alt="05 28" width="75%">
+  <div class="figure-caption">
+    Figure 28. Lisa awarding herself daily cookie tokens via a coinbase transaction.
+  </div>
+</div>
+
+
+<!-- 6. TRUST REMAINING IN LISA -->
+<h2>6. What Trust Remains in Lisa?</h2>
+
+<p class="question">
+  Q13: Can Lisa still cheat if all transactions are publicly verified?
+</p>
+<p class="answer">
+  She can’t forge or alter individual transactions without invalidating signatures. 
+  However, she can still:
+  <ul>
+    <li>Refuse to confirm (censor) certain transactions</li>
+    <li>Potentially remove (“revert”) past transactions from the ledger</li>
+  </ul>
+  This undermines confidence but can’t be easily proven by new verifiers. 
+  Later chapters (like blockchains, proof of work) will fix this.
+</p>
+
+
+<!-- 7. KEY TAKEAWAYS / SUMMARY -->
+<h2>7. Key Takeaways</h2>
+<ul>
+  <li><strong>Transactions</strong> replace the old single row of “From, To, CT.” 
+      They have <em>inputs</em> (which UTXOs are being spent) and <em>outputs</em> (who receives how much).</li>
+  <li>Everyone can verify transactions because they include all necessary signatures and scripts. 
+      This drastically reduces trust in Lisa—she can’t secretly alter payments.</li>
+  <li><strong>UTXO set</strong>: Lisa (and any full verifier) maintains a list of unspent outputs 
+      for fast checks of double spending.</li>
+  <li><strong>Script:</strong> A flexible, minimal programming language for specifying spending conditions. 
+      Basic form is p2pkh, but more advanced forms include multisig (<code>OP_CHECKMULTISIG</code>) or 
+      p2sh (pay-to-script-hash).</li>
+  <li><strong>New addresses:</strong> p2sh addresses start with <code>3</code>, hiding the script until spending time.</li>
+  <li>Coinbase transactions are how new money enters the system (replacing the old daily “row for Lisa”).</li>
+  <li>Lisa can’t forge or alter transactions, but she can still censor or revert them, 
+      which future chapters address with the concept of a blockchain and distributed consensus.</li>
+</ul>
+
+<hr>
+<p><em>End of Study Notes for Chapter 5. We’ve seen how transactions provide 
+publicly verifiable payments, forming the basis for the trustless 
+Bitcoin system once the blockchain is introduced!</em></p>
+
+</body>
+</html>

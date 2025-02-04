@@ -1,0 +1,2624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.15">
+<meta name="author" content="Kalle Rosenbaum">
+<title>Grokking Bitcoin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<link rel="stylesheet" href="style/asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="style/grokking-bitcoin.css">
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>Grokking Bitcoin</h1>
+<div class="details">
+<span id="author" class="author">Kalle Rosenbaum</span><br>
+</div>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#ch08">8. Peer-to-peer network</a>
+<ul class="sectlevel2">
+<li><a href="#_the_shared_folder">8.1. The shared folder</a></li>
+<li><a href="#_lets_build_a_peer_to_peer_network">8.2. Let’s build a peer-to-peer network</a></li>
+<li><a href="#_how_do_peers_talk">8.3. How do peers talk?</a></li>
+<li><a href="#the-network-protocol">8.4. The network protocol</a>
+<ul class="sectlevel3">
+<li><a href="#_john_sends_the_transaction">8.4.1. John sends the transaction</a></li>
+<li><a href="#_tom_forwards_the_transaction">8.4.2. Tom forwards the transaction</a></li>
+<li><a href="#_the_cafes_lightweight_wallet_is_notified">8.4.3. The cafe’s lightweight wallet is notified</a></li>
+<li><a href="#include-the-transaction-in-a-block">8.4.4. Including the transaction in a block</a></li>
+<li><a href="#_notifying_wallets">8.4.5. Notifying wallets</a></li>
+<li><a href="#_more_confirmations">8.4.6. More confirmations</a></li>
+</ul>
+</li>
+<li><a href="#_leaving_the_cookie_token_system">8.5. Leaving the cookie token system</a>
+<ul class="sectlevel3">
+<li><a href="#bitcoin-at-a-glance">8.5.1. Bitcoin at a glance</a></li>
+</ul>
+</li>
+<li><a href="#_where_were_we">8.6. Where were we?</a></li>
+<li><a href="#bootstrapping-the-network">8.7. Bootstrapping the network</a>
+<ul class="sectlevel3">
+<li><a href="#step-1">8.7.1. Step 1—Run the software</a></li>
+<li><a href="#_step_2connect_to_nodes">8.7.2. Step 2—Connect to nodes</a></li>
+<li><a href="#_step_3synchronize">8.7.3. Step 3—Synchronize</a></li>
+<li><a href="#_step_4normal_operation">8.7.4. Step 4—Normal operation</a></li>
+</ul>
+</li>
+<li><a href="#run-your-own-full-node">8.8. Running your own full node</a>
+<ul class="sectlevel3">
+<li><a href="#_downloading_bitcoin_core">8.8.1. Downloading Bitcoin Core</a></li>
+<li><a href="#_verifying_the_software">8.8.2. Verifying the software</a></li>
+<li><a href="#unpack-and-start">8.8.3. Unpacking and starting</a></li>
+<li><a href="#_initial_blockchain_download">8.8.4. Initial blockchain download</a></li>
+</ul>
+</li>
+<li><a href="#_recap">8.9. Recap</a>
+<ul class="sectlevel3">
+<li><a href="#_part_1following_a_transaction">8.9.1. Part 1—Following a transaction</a></li>
+<li><a href="#_part_2joining_the_network">8.9.2. Part 2—Joining the network</a></li>
+<li><a href="#_system_changes">8.9.3. System changes</a></li>
+</ul>
+</li>
+<li><a href="#_exercises">8.10. Exercises</a>
+<ul class="sectlevel3">
+<li><a href="#_warm_up">8.10.1. Warm up</a></li>
+<li><a href="#_dig_in">8.10.2. Dig in</a></li>
+</ul>
+</li>
+<li><a href="#_summary">8.11. Summary</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="ch08">8. Peer-to-peer network</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This chapter covers</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Removing the last central authority: the shared folder</p>
+</li>
+<li>
+<p>Following a transaction in the peer-to-peer network</p>
+</li>
+<li>
+<p>Leaving behind the silly cookie tokens</p>
+</li>
+<li>
+<p>Bootstrapping the peer-to-peer network</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Let’s talk about the elephant in the room: the shared folder. All blocks
+the miners produce must pass through the shared folder on their way to
+other full nodes and miners. This chapter will remove the central shared
+folder and replace it with a decentralized <em>peer-to-peer network</em>
+(<a href="#fig0801">Figure 1</a>). The peer-to-peer network lets full nodes (including
+miners) send blocks directly to each other. When nodes can talk directly
+to each other, we no longer need a central point of authority for
+communication.</p>
+</div>
+<div class="paragraph">
+<p>Another issue we haven’t talked much about is how wallets send
+transactions via email to the miners. When a new miner joins the system,
+all wallets need to update their miner list. Not cool. With this nice
+peer-to-peer network of nodes, wallets can broadcast their transactions
+to all miners without knowing who or where they are.</p>
+</div>
+<div id="fig0801" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-01.svg" alt="08 01" width="75%">
+</div>
+<div class="title">Figure 1. Bitcoin’s peer-to-peer network</div>
+</div>
+<div class="paragraph">
+<p>We’ll follow a transaction’s path through the network, both as an
+unconfirmed transaction and, eventually, as part of a mined block. The
+transaction will start in John’s wallet and end as a confirmed
+transaction in the blockchain with Bob’s wallet being notified about it.</p>
+</div>
+<div class="paragraph">
+<p>After following the transaction through the system, you’ll no longer
+need the cookie token system to help you understand Bitcoin. We’ll talk
+only about Bitcoin from that point forward. Practically no differences
+exist between the cookie token system and Bitcoin anymore, so it doesn’t
+make sense to keep talking about cookie tokens when, in fact, you want
+to learn about Bitcoin!</p>
+</div>
+<div class="paragraph">
+<p>The last topic in this chapter will cover how a new node connects to and
+becomes part of the peer-to-peer network. This is far from trivial. How
+does it find nodes to connect to? How does it download the blockchain up
+to the latest block? We’ll sort all that out. Toward the end of the
+chapter, you’ll learn how to set up a full node of your own.</p>
+</div>
+<div class="sect2">
+<h3 id="_the_shared_folder">8.1. The shared folder</h3>
+<div class="paragraph">
+<p>The shared folder administrator, Luke, is a central authority
+(<a href="#fig0802">Figure 2</a>). He ultimately gets to decide which blocks can be stored
+in the shared folder. He also gets to decide who can read from and
+write to the shared folder.</p>
+</div>
+<div id="fig0802" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-02.svg" alt="08 02" width="75%">
+</div>
+<div class="title">Figure 2. The shared folder is a central point of authority.</div>
+</div>
+<div class="paragraph">
+<p>So far, we’ve assumed Luke is a totally neutral good guy—but what if he
+isn’t, or what if he’s forced by Acme Insurances to reject certain
+blocks? What’s the point of proof of work if the system can be censored
+at the block level? Proof of work made the <em>transactions</em>
+censorship-resistant because it let users send their transactions to
+multiple miners. But the <em>blocks</em> containing the transactions can still
+be censored by whoever has administrator privileges over the shared
+folder. Simply put, the system isn’t yet censorship-resistant. As long
+as a single entity can decide which blocks or transactions to allow, the
+system isn’t censorship-resistant.</p>
+</div>
+<div class="paragraph">
+<p>The shared folder poses yet another problem. Imagine that Rashid has
+created a 1 MB block and published it to the shared folder. Everyone
+watching the shared folder, all full nodes, will download Rashid’s block
+at the same time. If you have 100 full nodes, the total amount of data
+you need to send from the shared folder to the different nodes is
+100 MB. This will cause <em>block propagation</em>—the transfer of a block
+from its creator to all other nodes—to be terribly slow. The more nodes,
+the slower the block propagation.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_lets_build_a_peer_to_peer_network">8.2. Let’s build a peer-to-peer network</h3>
+<div class="paragraph">
+<p>What if the full nodes and miners could talk directly to each other
+instead of relying on the central shared folder? They could send the
+blocks directly to one another in a peer-to-peer network (<a href="#fig0803">Figure 3</a>).</p>
+</div>
+<div id="fig0803" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-03.svg" alt="08 03" width="75%">
+</div>
+<div class="title">Figure 3. In a peer-to-peer network, blocks are passed from one node to another, much as gossip spreads among people.</div>
+</div>
+<div class="paragraph">
+<p>Think of the peer-to-peer network as a large number of people. One
+person doesn’t know everyone else, but might know three people. When
+something interesting happens—for example, Rashid finds a block—he tells
+his three friends about it, who in turn tell all their friends, and so
+on until everybody knows about this new block. We call such networks
+<em>gossip networks</em> for apparent reasons.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Relay</div>
+<div class="paragraph">
+<p>To <em>relay</em> a received block means to pass the block on to others.</p>
+</div>
+</div>
+</div>
+<div class="paragraph important">
+<p>Blocks can no longer be easily stopped. A node can choose not to pass a
+block on, or <em>relay</em> it, to its peers, but the peers are connected to
+several other peers that will gladly relay the block to them. A single
+node can’t do much to censor information.</p>
+</div>
+<div class="paragraph">
+<p>Suppose Rashid finds a block, and he wants to get this block out to
+all nodes. Rashid sends his block to Qi, Tom, and the cafe. For some
+reason, the cafe doesn’t forward the block to Lisa (<a href="#fig0804">Figure 4</a>). But
+Lisa has several peers in this network. She’s connected to Tom
+and Qi. Tom will tell Lisa about this new block and send it
+to her. The cafe can’t hide information from Lisa as long as she’s
+well-connected—that is, has many different peers.</p>
+</div>
+<div id="fig0804" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-04.svg" alt="08 04" width="75%">
+</div>
+<div class="title">Figure 4. If the cafe refuses to relay a block to Lisa, someone else will do it.</div>
+</div>
+<div class="paragraph">
+<p>Now that you have this nice network, wallets can use it to get their
+transactions sent to miners. Then they won’t have to keep track of
+miner email addresses anymore. The transactions will be broadcast over
+the peer-to-peer network and reach all full nodes within seconds. This
+includes the miners, because they’re also full nodes. We covered this
+briefly in <a href="#ch01">[ch01]</a>, as repeated in <a href="#fig0805">Figure 5</a>.</p>
+</div>
+<div id="fig0805" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-05.svg" alt="08 05" width="75%">
+</div>
+<div class="title">Figure 5. Transactions travel the peer-to-peer network just like blocks do. Wallets no longer need to know the miners.</div>
+</div>
+<div class="paragraph">
+<p>The same thing goes here as for blocks: a single node can’t hinder
+transactions from spreading across the network. Another pleasant
+effect of using the peer-to-peer network for transactions is that a
+transaction’s recipient can be notified that the transaction is
+<em>pending</em>, or is about to be confirmed. We’ll look at how this works
+a bit later.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_how_do_peers_talk">8.3. How do peers talk?</h3>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">TCP</div>
+<div class="paragraph">
+<p>When you open a web page on <a href="https://bitcoin.org" class="bare">https://bitcoin.org</a>, your web browser will
+make a TCP connection to bitcoin.org, download a web page through that
+connection, and display it to you.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let’s look at how the communication between two peers happens. We’ll
+look specifically at how Tom connects to Lisa and how they communicate
+across their communication channel, called a Transmission Control
+Protocol (TCP) connection (<a href="#fig0806">Figure 6</a>).</p>
+</div>
+<div id="fig0806" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-06.svg" alt="08 06" width="50%">
+</div>
+<div class="title">Figure 6. Tom and Lisa communicate over the internet through a communication channel.</div>
+</div>
+<div class="paragraph">
+<p>Suppose Tom’s node knows about Lisa’s node. I’ll explain in
+<a href="#bootstrapping-the-network">Section 8.7</a> how Tom learns about other nodes. For now,
+let’s assume he has the <em>IP address</em> and <em>port</em> of Lisa’s node. He now
+wants to connect to Lisa’s node to communicate with it. All computers on
+the internet have an Internet Protocol (IP) address, which is how one
+computer can send information to another. A computer program that
+listens for incoming connections must listen on a specific port number
+of its computer’s IP address. Lisa’s computer has the IP address
+142.12.233.96 and runs a cookie token program that listens for incoming
+connections on port 8333.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Port 8333</div>
+<div class="paragraph">
+<p>Port 8333 is the default listening port in Bitcoin Core, the most
+widely used full node software.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Tom’s node connects to Lisa’s node through the IP address
+142.12.233.96 and TCP port 8333. His node (computer program) starts by
+asking its operating system (OS) to initiate a connection to Lisa
+(<a href="#fig0807">Figure 7</a>). The OS sends a message to Lisa’s computer saying that
+Tom wants to talk to a computer program on Lisa’s port 8333. Her
+computer knows a program is listening on port 8333, so it sends back a
+“Sure, welcome” message.  Tom’s computer acknowledges this by sending
+back an “OK, cool. Let’s talk …” message.</p>
+</div>
+<div id="fig0807" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-07.svg" alt="08 07" width="50%">
+</div>
+<div class="title">Figure 7. Tom’s computer program sets up a TCP connection to Lisa’s computer program. After this, they can send and receive data between each other.</div>
+</div>
+<div class="paragraph">
+<p>The node software on Tom’s and Lisa’s computers wasn’t involved in this
+exchange—it was carried out by their OSs, such as Linux, Windows, or
+macOS. When the message sequence is finished, the OS hands the
+connection over to the node software. Lisa’s and Tom’s nodes can now
+speak freely to each other. Tom can send data to Lisa, and Lisa can send
+data to Tom over this communication channel, or <em>TCP connection</em>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="the-network-protocol">8.4. The network protocol</h3>
+<div class="paragraph">
+<p>Tom and Lisa can now send and receive data over a communi­cation
+channel. But if Tom’s node speaks a language that Lisa’s node doesn’t
+understand, the communication won’t be meaningful (<a href="#fig0808">Figure 8</a>). The
+nodes must have a common language: a <em>protocol</em>.</p>
+</div>
+<div id="fig0808" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-08.svg" alt="08 08" width="50%">
+</div>
+<div class="title">Figure 8. Lisa must be able to understand what Tom writes on the channel.</div>
+</div>
+<div class="paragraph">
+<p>The cookie token network protocol defines a set of message types that
+are allowed. A typical message in the cookie token (well, Bitcoin)
+network is the <code>inv</code> message (<a href="#fig0809">Figure 9</a>).</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">This is an abstraction</div>
+<div class="paragraph">
+<p>Real network messages don’t look exactly like these; I provide an
+abstract view of the messages. The exact format of the network
+messages is out of the scope of this book.</p>
+</div>
+</div>
+</div>
+<div id="fig0809" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-09.svg" alt="08 09" width="75%">
+</div>
+<div class="title">Figure 9. A typical network message</div>
+</div>
+<div class="paragraph">
+<p>A node uses the <code>inv</code>—short for <em>inventory</em>—message to inform other
+nodes about something it has. In <a href="#fig0809">Figure 9</a>, Tom’s node informs
+Lisa’s node that Tom has three things to offer Lisa: two transactions
+and a block. The message contains an ID for each of these items.</p>
+</div>
+<div class="sect3">
+<h4 id="_john_sends_the_transaction">8.4.1. John sends the transaction</h4>
+<div class="paragraph">
+<p>Let’s follow a transaction through the network from start to end to see
+what network messages are being used. We’ll assume the peer-to-peer
+network is already set up. We’ll come back to how the network is
+<em>bootstrapped</em> later in this chapter.</p>
+</div>
+<div class="paragraph">
+<p>In <a href="#lightweight-wallets">[lightweight-wallets]</a>, we said that wallets can connect to full
+nodes and get information about all block headers and transactions
+concerning them using bloom filters and merkle proofs (<a href="#fig0810">Figure 10</a>).</p>
+</div>
+<div id="fig0810" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-10.svg" alt="08 10" width="75%">
+</div>
+<div class="title">Figure 10. Lightweight wallets communicate with nodes using the Bitcoin network protocol.</div>
+</div>
+<div class="paragraph">
+<p>I didn’t go into detail then about how this communication works. It uses
+the same protocol the nodes use when they communicate with each other.
+The wallets and the full nodes (including miners) all speak the same
+“language.”</p>
+</div>
+<div class="paragraph">
+<p>Suppose John wants to buy a cookie from the cafe. John’s wallet is
+connected to Tom’s node with a TCP connection. He scans the payment URI
+from the cafe’s wallet. John’s wallet creates and signs a transaction.
+You know the drill. Then it’s time to send the transaction to Tom’s node
+(<a href="#fig0811">Figure 11</a>).</p>
+</div>
+<div id="fig0811" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-11.svg" alt="08 11" width="50%">
+</div>
+<div class="title">Figure 11. The transaction is sent to Tom’s node through a TCP connection.</div>
+</div>
+<div class="paragraph">
+<p>This happens in a three-step process. John’s wallet doesn’t just send
+the transaction unsolicited: it first informs Tom’s node that there’s a
+transaction to be fetched (<a href="#fig0812">Figure 12</a>).</p>
+</div>
+<div id="fig0812" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-12.svg" alt="08 12" width="75%">
+</div>
+<div class="title">Figure 12. Tom’s node is informed about John’s transaction so that Tom can fetch it.</div>
+</div>
+<div class="paragraph">
+<p>The first message is an <code>inv</code> message, as described in the previous
+section. John’s wallet sends the <code>inv</code> to Tom’s full node. Tom checks if
+he already has the transaction. He doesn’t, because John’s wallet just
+created it and hasn’t sent it to anyone yet. Tom’s node wants to get
+this transaction, so he requests it with a <code>getdata</code> message that looks
+just like an <code>inv</code> message but with a different meaning: <code>getdata</code>
+means “I want this stuff,” whereas <code>inv</code> means “I have this stuff.”</p>
+</div>
+<div class="paragraph">
+<p>John’s wallet receives the <code>getdata</code> message and sends a <code>tx</code> message
+containing the entire transaction to Tom’s node. Tom will verify the
+transaction and keep it. He’ll also relay this transaction to his
+network neighbors.</p>
+</div>
+<div class="paragraph">
+<p>You might ask, “Why doesn’t John’s wallet send the entire transaction
+immediately? Why go through the hassle with <code>inv</code> and <code>getdata</code>?” This
+will become clear later, but it’s because nodes might already have the
+transaction; we save bandwidth by sending only transaction hashes
+instead of entire transactions.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tom_forwards_the_transaction">8.4.2. Tom forwards the transaction</h4>
+<div class="paragraph">
+<p>If the transaction is valid, Tom’s node will inform his neighbors about
+it (<a href="#fig0813">Figure 13</a>) using an <code>inv</code> message, just like John’s wallet did
+when it informed Tom’s node about the transaction.</p>
+</div>
+<div id="fig0813" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-13.svg" alt="08 13" width="75%">
+</div>
+<div class="title">Figure 13. Tom forwards the transaction to his peers.</div>
+</div>
+<div class="paragraph">
+<p>The process is the same for these three message exchanges as the one
+John used when he first sent the transaction to Tom (<a href="#fig0814">Figure 14</a>). Lisa,
+Qi, and Rashid will get an <code>inv</code> message from Tom.</p>
+</div>
+<div id="fig0814" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-14.svg" alt="08 14" width="75%">
+</div>
+<div class="title">Figure 14. Tom’s node sends the transaction to Qi’s node using the familiar three-step process.</div>
+</div>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-01.svg" alt="u08 01">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>When Lisa, Qi, and Rashid have received the transaction, they too will
+inform their peers about it after they’ve verified it. Qi’s and Rashid’s
+nodes are a bit slower, so it takes them a while to verify the
+transaction; we’ll get back to them later.</p>
+</div>
+<div class="paragraph">
+<p>Lisa was quick to verify the transaction, so she’ll be the first of the
+three to relay it. She already knows that she received the transaction
+from Tom, so she won’t inform Tom’s node with an <code>inv</code> message. But Lisa
+doesn’t know that Qi already has the transaction, and she doesn’t know
+if the cafe has it. She’ll send an <code>inv</code> to those two nodes. The cafe’s
+node will send back a <code>getdata</code> because it hasn’t yet seen this
+transaction. Qi’s node already has this transaction and won’t reply with
+anything (<a href="#fig0815">Figure 15</a>). She’ll remember that Lisa has it, though.</p>
+</div>
+<div id="fig0815" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-15.svg" alt="08 15" width="75%">
+</div>
+<div class="title">Figure 15. Lisa’s node sends an <code>inv</code> to Qi’s node, but Qi’s node already has the transaction.</div>
+</div>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-02.svg" alt="u08 02">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Qi has just finished verifying the transaction. She knows that Lisa’s
+node has it, so she doesn’t have to send an <code>inv</code> to Lisa’s node. But
+she doesn’t know if Rashid has it, so she sends an <code>inv</code> to Rashid’s
+node.</p>
+</div>
+<div class="paragraph">
+<p>Rashid’s was the slowest node when verifying John’s transaction, so when
+it’s time for him to send an <code>inv</code> to his neighbors, he’s already
+received an <code>inv</code> from Qi’s node. And he also knows from earlier that
+Tom already has the transaction. He’ll just send an <code>inv</code> to the cafe’s
+node, which will ignore the <code>inv</code> because it already has the
+transaction.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_the_cafes_lightweight_wallet_is_notified">8.4.3. The cafe’s lightweight wallet is notified</h4>
+<div class="paragraph">
+<p>I said earlier that a good thing about letting transactions travel the
+peer-to-peer network is that the recipient wallet can get a quick
+notification of the pending transaction. Let’s explore this now.</p>
+</div>
+<div class="paragraph">
+<p>The cafe’s full node has received the transaction and verified it. The
+cafe also has a lightweight wallet on a mobile phone that it uses to
+send and receive money. The cafe is concerned with security, so it
+configured this lightweight wallet to connect only the cafe’s own full
+node, its <em>trusted node</em> (<a href="#fig0816">Figure 16</a>).</p>
+</div>
+<div id="fig0816" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-16.svg" alt="08 16" width="50%">
+</div>
+<div class="title">Figure 16. The cafe’s lightweight wallet has a TCP connection to its own full node.</div>
+</div>
+<div class="paragraph">
+<p>This common setup gives the cafe the complete security of a full node
+combined with the flexibility and mobility of a lightweight wallet. I
+described this setup in <a href="#security-of-lightweight-wallets">[security-of-lightweight-wallets]</a>.</p>
+</div>
+<div class="paragraph">
+<p>The cafe’s full node has just verified John’s transaction. It now wants
+to inform its neighbors about this new transaction. It’s connected to
+Lisa’s node, Rashid’s node, and the cafe’s lightweight wallet. The full
+node already knows that Lisa’s and Rashid’s nodes have this transaction,
+so it doesn’t send an <code>inv</code> to those two nodes. The full node doesn’t
+know whether the wallet has the transaction, but it won’t immediately
+send an <code>inv</code> message to the wallet.</p>
+</div>
+<div class="sidebarblock biside">
+<div class="content">
+<div class="title">Bloom filter</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-03.svg" alt="u08 03">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The wallet is a lightweight wallet, which uses bloom filters,
+described in <a href="#bloom-filters-obfuscate-addresses">[bloom-filters-obfuscate-addresses]</a>. The full node will
+test the transaction against the bloom filter and, if it matches, send
+an <code>inv</code> message to the wallet. If there’s no match, it won’t send an
+<code>inv</code> message.</p>
+</div>
+<div class="paragraph">
+<p>John’s transaction is for the cafe, so the bloom filter will match the
+transaction, and the full node will send an <code>inv</code>. The wallet will
+request the actual transaction using <code>getdata</code>, as <a href="#fig0817">Figure 17</a> shows.</p>
+</div>
+<div id="fig0817" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-17.svg" alt="08 17" width="50%">
+</div>
+<div class="title">Figure 17. The cafe’s wallet gets John’s transaction from the cafe’s trusted node after the transaction is checked against the bloom filter.</div>
+</div>
+<div class="paragraph">
+<p>The wallet has now received the transaction. It can show a message to
+the cafe owner that a transaction is pending. The cafe owner has a
+choice: trust that the transaction—a so-called <em>0-conf
+transaction</em>—will be confirmed eventually, or wait until the
+transaction is confirmed. If the cafe accepts the 0-conf transaction,
+then it trusts that John has paid a high enough transaction fee and that
+the transaction won’t be double spent.</p>
+</div>
+<div class="paragraph">
+<p>This time, the cafe decides that it needs to wait until the transaction
+is included in a valid block. This brings us to the next phase:
+including the transaction in a block in the blockchain.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="include-the-transaction-in-a-block">8.4.4. Including the transaction in a block</h4>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-04.svg" alt="u08 04">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let’s recall some of the miners in this system. At the end of
+<a href="#mitigating-miner-centralization">[mitigating-miner-centralization]</a>, there were 10 different
+miners; but let’s go back in time and pretend Qi, Tom, Lisa, and Rashid
+are the only miners in this system right now.</p>
+</div>
+<div class="paragraph">
+<p>The transaction reached all these miners during transaction propagation.
+John’s wallet used to send the transaction via email to all miners. Now,
+he sends it to any of the full nodes, and it propagates across the entire
+peer-to-peer network. Miners can choose to include John’s transaction in
+the blocks they’re mining. Suppose the transaction includes a
+transaction fee so that some or all miners are willing to include it,
+and that Rashid is the next miner to find a valid proof of work for his
+block, which happens to contain John’s transaction (<a href="#fig0818">Figure 18</a>).</p>
+</div>
+<div id="fig0818" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-18.svg" alt="08 18" width="50%">
+</div>
+<div class="title">Figure 18. Rashid’s block containing John’s transaction</div>
+</div>
+<div class="paragraph">
+<p>Rashid wants to get his block to the other miners as quickly as possible
+to minimize the risk of some other miner getting a block out before
+Rashid’s block.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">BIP130</div>
+<div class="paragraph">
+<p>This process is defined in BIP130, which replaces an old
+block-propagation mechanism that used <code>inv</code> messages.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>He creates a <code>headers</code> message and sends it to all his peers: Tom, the
+cafe, and Qi. Rashid’s peers will send back a <code>getdata</code> message, and
+Rashid will reply with the actual block. The message exchange between
+Rashid and Qi will look like the one in <a href="#fig0819">Figure 19</a>.</p>
+</div>
+<div id="fig0819" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-19.svg" alt="08 19" width="50%">
+</div>
+<div class="title">Figure 19. Rashid’s node sends Rashid’s block to Qi’s node.</div>
+</div>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-05.svg" alt="u08 05">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The actual block is sent in a <code>block</code> message containing the full block.</p>
+</div>
+<div class="paragraph">
+<p>Let’s continue the block propagation throughout the peer-to-peer
+network. Rashid has sent his block to Tom, the cafe, and Qi. Now, these
+three nodes will verify the block and, if it’s valid, send out <code>headers</code>
+messages to all their peers who might not already have it (<a href="#fig0820">Figure 20</a>).</p>
+</div>
+<div class="paragraph">
+<p>Qi and Tom happen to send their <code>headers</code> messages to each other at the
+same time. This isn’t a problem; because they both have the block,
+they’ll ignore the <code>headers</code> received from peers. Lisa will request the
+block from one of her peers just like Qi requested the block from
+Rashid.</p>
+</div>
+<div id="fig0820" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-20.svg" alt="08 20" width="75%">
+</div>
+<div class="title">Figure 20. All but Lisa have the block. Tom, the cafe, and Qi send <code>headers</code> messages.</div>
+</div>
+<div class="paragraph">
+<p>This concludes the propagation of this block—almost. The lightweight
+wallets need to be informed about the block.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_notifying_wallets">8.4.5. Notifying wallets</h4>
+<div class="paragraph">
+<p>Tom’s node is connected to John’s wallet, so Tom sends a <code>headers</code>
+message to John. Likewise, the cafe’s full node sends a <code>headers</code>
+message to the cafe’s lightweight wallet. Tom’s and the cafe’s full
+nodes won’t test the block against the bloom filters in any way. They
+will send the <code>headers</code> message unconditionally, but the lightweight
+wallets won’t request the full blocks.</p>
+</div>
+<div class="paragraph">
+<p>As you might recall from <a href="#ch06">[ch06]</a>, lightweight wallets don’t download
+the full blocks. Most of the time, John’s wallet is only interested in
+the block headers so it can verify the blockchain’s proof of work. But
+every now and then, transactions that are relevant to John’s wallet
+are in the blocks, and the wallet wants proof that those transactions
+are included in the block. To find out if there are any relevant
+transactions, he sends a <code>getdata</code> message to Tom, requesting a
+<code>merkleblock</code> message for the block.</p>
+</div>
+<div class="paragraph">
+<p>John gets a <code>merkleblock</code> message containing the block header and a
+partial merkle tree connecting his transaction ID (txid) to the merkle
+root in the block header (<a href="#fig0821">Figure 21</a>).</p>
+</div>
+<div id="fig0821" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-21.svg" alt="08 21" width="75%">
+</div>
+<div class="title">Figure 21. Tom sends a <code>merkleblock</code> containing a merkle proof that John’s transaction is in the block.</div>
+</div>
+<div class="paragraph">
+<p><a href="#fig0822">Figure 22</a> gives a little repetition from <a href="#ch06">[ch06]</a>.</p>
+</div>
+<div id="fig0822" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-22.svg" alt="08 22" width="75%">
+</div>
+<div class="title">Figure 22. The <code>merkleblock</code> message contains a block header and a partial merkle tree.</div>
+</div>
+<div class="paragraph">
+<p>John’s wallet will verify that</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The block header is correct and has a valid proof of work.</p>
+</li>
+<li>
+<p>The merkle root in the header can be reconstructed using the partial
+merkle tree.</p>
+</li>
+<li>
+<p>The txid of John’s transaction is included in the partial merkle tree.
+He doesn’t care about the irrelevant transaction that’s used to
+obfuscate what belongs to John.</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-06.svg" alt="u08 06">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>John’s wallet is now sure his transaction is contained in the new block.
+The wallet can display a message to John saying, “Your transaction has 1
+confirmation.”</p>
+</div>
+<div class="paragraph">
+<p>The cafe’s lightweight wallet will be notified the same way.</p>
+</div>
+<div class="paragraph">
+<p>Because the cafe’s wallet uses a trusted node, privacy isn’t much of an
+issue (<a href="#fig0823">Figure 23</a>). The wallet can use a big bloom filter to reduce the
+number of irrelevant transactions, which in turn will reduce mobile data
+traffic. The sparser the bloom filter, the less extra obfuscation<br>
+traffic will be sent to the wallet.</p>
+</div>
+<div id="fig0823" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-23.svg" alt="08 23" width="75%">
+</div>
+<div class="title">Figure 23. The cafe requests a merkle block from its trusted full node.</div>
+</div>
+<div class="paragraph">
+<p>The cafe’s owner feels comfortable handing the cookie over to
+John now.  John eats his cookie. The deal is done.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_more_confirmations">8.4.6. More confirmations</h4>
+<div class="paragraph">
+<p>As time passes, more blocks will be mined by the miners. These blocks
+will all propagate the network and end up on every full node. The
+lightweight wallets will get merkle blocks to save bandwidth.</p>
+</div>
+<div class="paragraph">
+<p>For each new block coming in, John’s transaction will be buried under
+more and more proof of work (<a href="#fig0824">Figure 24</a>). This makes John’s transaction
+harder and harder to double spend. For each new block, the transaction
+will get one more confirmation.</p>
+</div>
+<div id="fig0824" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-24.svg" alt="08 24" width="75%">
+</div>
+<div class="title">Figure 24. As more blocks arrive, John’s transaction becomes safer and safer.</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_leaving_the_cookie_token_system">8.5. Leaving the cookie token system</h3>
+<div class="paragraph">
+<p>I don’t think the cookie token system will add any more to your
+understanding of Bitcoin. It’s time to let go of the cookie tokens and
+start talking solely about Bitcoin. We’ve developed the cookie token
+system to a point where there are no differences from
+Bitcoin. <a href="#tab0801">Table 1</a> shows the concept mapping table.</p>
+</div>
+<table id="tab0801" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 1. The shared folder is ditched in favor of a peer-to-peer network.</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cookie tokens</th>
+<th class="tableblock halign-left valign-top">Bitcoin</th>
+<th class="tableblock halign-left valign-top">Covered in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 cookie token</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 bitcoin</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch02">[ch02]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through">The shared folder</span></strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through">The Bitcoin network</span></strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><span class="line-through"><a href="#ch08">Chapter 8</a></span></strong></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The last cookie token concept that differs from Bitcoin, the shared
+folder, has been eliminated. Let’s look at how it all happened, in
+<a href="#fig0825">Figure 25</a>.</p>
+</div>
+<div class="paragraph">
+<p>We’ll keep our friends at the office a while longer. John will probably
+have to buy a few more cookies, but he’ll use Bitcoin to do it.</p>
+</div>
+<div id="fig0825" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-25.svg" alt="08 25" width="100%">
+</div>
+<div class="title">Figure 25. The cookie token system’s evolution</div>
+</div>
+<div class="sect3">
+<h4 id="bitcoin-at-a-glance">8.5.1. Bitcoin at a glance</h4>
+<div class="paragraph">
+<p>The Bitcoin peer-to-peer network is huge. As of this writing:</p>
+</div>
+<div class="ulist movingtarget">
+<ul>
+<li>
+<p>There are about 10,000 publicly accessible full nodes.</p>
+</li>
+<li>
+<p>Bitcoin’s money supply is about 17,400,000 BTC.</p>
+</li>
+<li>
+<p>Each bitcoin is worth around $6,500.</p>
+</li>
+<li>
+<p>Bitcoin processes about 250,000 transactions per day.</p>
+</li>
+<li>
+<p>An estimate of 100,000 BTC, valued at $630 million, is moved daily.</p>
+</li>
+<li>
+<p>The total mining hashrate is about 50 Ehash/s, or 50 × 10<sup>18</sup> hash/s.<br>
+A typical desktop computer can do about 25 Mhash/s.</p>
+</li>
+<li>
+<p>The transaction fees paid each day total around 17 BTC. This averages to
+6,800 satoshis per transaction, or about $0.40 per transaction.</p>
+</li>
+<li>
+<p>People in all corners of the world use Bitcoin to get around problems in
+their day-to-day lives.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2 periscope">
+<h3 id="_where_were_we">8.6. Where were we?</h3>
+<div class="paragraph">
+<p>This chapter is about Bitcoin’s peer-to-peer network. The first half of
+the chapter described the network in action after it’s been set up, as
+illustrated by <a href="#fig0826">Figure 26</a>, repeated from <a href="#ch01">[ch01]</a>.</p>
+</div>
+<div id="fig0826" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-26.svg" alt="08 26" width="50%">
+</div>
+<div class="title">Figure 26. The Bitcoin network distributes blocks (and transactions) to all participants.</div>
+</div>
+<div class="paragraph">
+<p>The second half of this chapter will look at how a new node joins the
+network.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="bootstrapping-the-network">8.7. Bootstrapping the network</h3>
+<div class="paragraph">
+<p>The scenario in <a href="#the-network-protocol">Section 8.4</a> assumed that all nodes involved
+were already connected to each other. But how does a new node start? How
+would it find other nodes to connect to? How would it download the full
+blockchain from the genesis block, block 0, up to the latest block? How
+does it know what the latest block is?</p>
+</div>
+<div class="paragraph">
+<p>Let’s sort it out.</p>
+</div>
+<div class="paragraph">
+<p>Suppose Selma wants to start her own full node. This is how it would
+typically happen (<a href="#fig0827">Figure 27</a>):</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Selma downloads, verifies, and starts the full node computer program.</p>
+</li>
+<li>
+<p>The computer program connects to some nodes.</p>
+</li>
+<li>
+<p>Selma’s node downloads blocks from her peers.</p>
+</li>
+<li>
+<p>Selma’s node enters a normal mode of operation.</p>
+</li>
+</ol>
+</div>
+<div id="fig0827" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-27.svg" alt="08 27" width="100%">
+</div>
+<div class="title">Figure 27. Running a full node involves downloading and running the software, connecting to other nodes, downloading old blocks, and entering normal operation.</div>
+</div>
+<div class="sect3">
+<h4 id="step-1">8.7.1. Step 1—Run the software</h4>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-08.svg" alt="u08 08">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Selma needs a computer program to run a full node. The most commonly
+used such program is Bitcoin Core. Several others are available, such as
+libbitcoin, bcoin, bitcoinj, and btcd. We’ll focus only on Bitcoin Core,
+but you’re encouraged to explore the others yourself.</p>
+</div>
+<div class="paragraph">
+<p>To download Bitcoin Core, Selma visits its web page,
+<a href="https://bitcoincore.org" class="bare">https://bitcoincore.org</a>, and finds a download link there. But she
+encounters a potential problem: Selma isn’t sure the program she
+downloads is actually the version the developers behind Bitcoin Core
+released. Someone could have fooled Selma into downloading the program
+from bitconcore.org instead of bitcoincore.org, or someone might have
+hacked bitcoincore.org and replaced the downloadable files with
+alternative programs.</p>
+</div>
+<div class="paragraph">
+<p>The Bitcoin Core team therefore signs all released versions of the
+program with a private key—let’s call it the <em>Bitcoin Core
+key</em>. They provide the signature in a downloadable file, named
+SHA256SUMS.asc. This file contains the hash value of the released
+Bitcoin Core software and a signature that signs the contents of the
+SHA256SUMS.asc file (<a href="#fig0828">Figure 28</a>).</p>
+</div>
+<div id="fig0828" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-28.svg" alt="08 28" width="75%">
+</div>
+<div class="title">Figure 28. The Bitcoin Core team signs the released program with their private key.</div>
+</div>
+<div class="paragraph">
+<p>Selma has downloaded both the program, in a file called
+bitcoin-0.17.0-x86_64-linux-gnu.tar.gz, and the signature file,
+SHA256SUMS.asc. To verify that the program is in fact signed by the
+Bitcoin Core private key, she needs to know the corresponding public
+key. But how can she know what this key is?</p>
+</div>
+<div class="paragraph">
+<p>This is a hard problem. Remember when Lisa used to sign blocks with her
+private key? How would the full nodes verify that the blocks were
+actually signed by Lisa? They used multiple sources to fetch Lisa’s
+public key—for example, looking at the bulletin board at the entrance of
+the office, checking the company’s intranet, and asking colleagues. The
+same applies here; you shouldn’t trust a single source, but should use
+at least two different sources. The key that’s currently being used to
+sign Bitcoin Core releases is named</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Wladimir J. van der Laan (Bitcoin Core binary release signing key) &lt;laanwj@gmail.com&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>and has the following 160-bit SHA1 hash, called <em>fingerprint</em>:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>01EA 5486 DE18 A882 D4C2  6845 90C8 019E 36C2 E964</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This book can serve as <em>one</em> of Selma’s sources. She decides to</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Get the fingerprint of the key from <a href="https://bitcoincore.org" class="bare">https://bitcoincore.org</a>.</p>
+</li>
+<li>
+<p>Verify the fingerprint with the <em>Grokking Bitcoin</em> book.</p>
+</li>
+<li>
+<p>Verify the fingerprint with a friend.</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Where to get the key</div>
+<div class="paragraph">
+<p>It doesn’t really matter where you get the actual public key, but it’s
+important to verify that its fingerprint is what you expect.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The fingerprints from the three sources match, so Selma downloads the
+public key from a <em>key server</em>. A key server is a computer on the
+internet that provides a repository of keys. Key servers are commonly
+used to download keys identified by the key’s fingerprint. Selma doesn’t
+trust the key server, so she needs to verify that the fingerprint of the
+downloaded key matches the expected fingerprint, which it does.</p>
+</div>
+<div class="paragraph">
+<p>Now, when she has the Bitcoin Core public key, she can verify the
+signature of the SHA256SUMS.asc file (<a href="#fig0829">Figure 29</a>).</p>
+</div>
+<div class="paragraph">
+<p>She uses the Bitcoin Core public key to verify the signature in the
+signature file. She must also verify that the program has the same
+hash value as stated in SHA256SUMS.asc. The signature is valid, and
+the hashes match, which means Selma can be sure the software she’s
+about to run is authentic.</p>
+</div>
+<div id="fig0829" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-29.svg" alt="08 29" width="75%">
+</div>
+<div class="title">Figure 29.  Selma verifies the Bitcoin Core signature and that the hash in the signature file matches the hash of the actual program.</div>
+</div>
+<div class="paragraph">
+<p>Selma starts the program on her computer.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_step_2connect_to_nodes">8.7.2. Step 2—Connect to nodes</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-09.svg" alt="u08 09">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>When Selma’s full node program starts, it isn’t connected to any other
+nodes. She’s not part of the Bitcoin network yet. In this step, the node
+will try to find peers to connect to.</p>
+</div>
+<div class="paragraph">
+<p>To connect to a peer, the full node needs the IP address and the TCP
+port for that peer. For example:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>IP: 142.12.233.96 port: 8333</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>An IP address and port are often written as</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>142.12.233.96:8333</pre>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_finding_initial_peers">Finding initial peers</h5>
+<div class="paragraph">
+<p>Where does Selma’s node find initial addresses of other peers? Several
+sources are available (<a href="#fig0830">Figure 30</a>):</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Configure the full node with custom peer addresses. Selma can get an
+address by asking a friend who’s running a full node.</p>
+</li>
+<li>
+<p>Use the Domain Name System (DNS) to look up initial peer addresses to
+connect to.</p>
+</li>
+<li>
+<p>Use hardcoded peer addresses in the full node program.</p>
+</li>
+</ul>
+</div>
+<div id="fig0830" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-30.svg" alt="08 30" width="75%">
+</div>
+<div class="title">Figure 30. Selma’s full node has three different types of sources to find initial peers.</div>
+</div>
+<div class="paragraph important">
+<p>Selma’s node shouldn’t initially connect to just one node. If that
+single node is malicious, she’d have no way of knowing it. If you
+connect to multiple nodes initially, you can verify that they all send
+data consistent with each other. If not, one or more nodes are
+deliberately lying to you, or they themselves have been fooled.</p>
+</div>
+<div class="paragraph">
+<p>The default way of finding initial node addresses is to look them up in
+the DNS system. DNS is a global name lookup system, used to look up IP
+numbers from computer names. For example, when you visit
+<a href="https://bitcoin.org" class="bare">https://bitcoin.org</a> with your web browser, it will use DNS to look up
+the IP number of the name bitcoin.org. The Bitcoin Core software does
+the same. Names to look up are hardcoded into Bitcoin Core, just like
+the hardcoded IP addresses and ports. Several DNS seeds are coded into
+the software. A lookup of a DNS seed can return several IP addresses,
+and every new lookup might return a different set of IP addresses. The
+final, third option is used as a last resort.</p>
+</div>
+<div class="paragraph">
+<p>Note from <a href="#fig0830">Figure 30</a> that DNS lookups don’t return port numbers. The
+other two methods of finding initial peers usually include one, but
+the DNS response can return only IP addresses. The nodes on these IP
+addresses are assumed to listen on the default port that Bitcoin Core
+listens on, which is 8333.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_handshaking">Handshaking</h5>
+<div class="sidebarblock bigside">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-10.svg" alt="u08 10">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Suppose Selma’s node chooses to connect to Qi’s node, 1.234.63.203:4567,
+and to Rashid’s node, 47.196.31.246:8333. Selma sets up a TCP connection
+to each of the two nodes and sends an initial message to both of them on
+the new TCP connections. Let’s look at how she talks to Qi’s node
+(<a href="#fig0831">Figure 31</a>).</p>
+</div>
+<div id="fig0831" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-31.svg" alt="08 31" width="75%">
+</div>
+<div class="title">Figure 31. Selma exchanges a <code>version</code> message with Qi.</div>
+</div>
+<div class="paragraph">
+<p>The exchange, called a <em>handshake</em>, starts with Selma, who sends a
+<code>version</code> message to Qi. The handshake is used to agree on which
+protocol version to use and tell each other what block heights they
+have. The <code>version</code> message contains a lot of information not shown in
+the figure, but the most essential stuff is there:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Protocol version</dt>
+<dd>
+<p>The version of the network protocol, or “language,”
+that peers use to talk to each other. Selma and Qi will use version
+70012 because that’s the highest version Qi will understand. Selma knows
+all protocol versions up to her own.</p>
+</dd>
+<dt class="hdlist1">User agent</dt>
+<dd>
+<p>This is shown as “software identification” in the figure
+because “user agent” is a bit cryptic. It’s used to hint to the other
+node what software you’re running, but it can be anything.</p>
+</dd>
+<dt class="hdlist1">Height</dt>
+<dd>
+<p>This is the height of the tip of the best chain the node has.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Other useful information in the <code>version</code> message includes</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Services</dt>
+<dd>
+<p>A list of features this node supports, such as bloom
+filtering used by lightweight clients.</p>
+</dd>
+<dt class="hdlist1">My address</dt>
+<dd>
+<p>The IP address and port of the node sending the <code>version</code>
+message. Without it, Qi wouldn’t know what address to connect to if she
+restarts and wants to reconnect to Selma’s node.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>When Qi’s node receives Selma’s <code>version</code> message, Qi will reply with
+her own <code>version</code> message. She’ll also send a <code>verack</code> message
+immediately after the <code>version</code> message. The <code>verack</code> doesn’t contain
+any information; rather, it’s used to acknowledge to Selma that Qi has
+received the <code>version</code> message.</p>
+</div>
+<div class="paragraph">
+<p>As soon as Selma’s node receives Qi’s <code>version</code> message, it will reply
+with a <code>verack</code> message back to Qi’s node. The handshake is done. Selma
+also goes through the same procedure with Rashid’s node.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_finding_peers_peers">Finding peers’ peers</h5>
+<div class="paragraph">
+<p>When Selma’s node is connected to Rashid’s node, it will ask that node
+for other peer addresses to connect to. This way, Selma will be able to
+expand her set of peers (<a href="#fig0832">Figure 32</a>).</p>
+</div>
+<div id="fig0832" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-32.svg" alt="08 32" width="75%">
+</div>
+<div class="title">Figure 32. Selma asks her peers for more peer addresses to connect to.</div>
+</div>
+<div class="paragraph">
+<p>Selma is only connected to two peers: Qi’s node and Rashid’s node. But
+she thinks she needs more nodes to connect to. Being connected to only
+two nodes has some implications:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Qi and Rashid can collude to hide transactions and blocks from Selma.</p>
+</li>
+<li>
+<p>Qi’s node may break, leaving Selma with only Rashid’s node. Rashid can
+then singlehandedly hide information from Selma.</p>
+</li>
+<li>
+<p>Both Qi’s and Rashid’s nodes may break, in which case Selma will be
+completely disconnected from the network until she connects to some
+other nodes via the initial peer-lookup mechanisms.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="#fig0833">Figure 33</a> shows how Selma asks Rashid for more peer addresses to
+connect to.</p>
+</div>
+<div id="fig0833" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-33.svg" alt="08 33" width="75%">
+</div>
+<div class="title">Figure 33. Selma requests more peer addresses from Rashid’s node. He responds with a bunch.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Initial nodes</div>
+<div class="paragraph">
+<p>After getting an <code>addr</code> message, nodes disconnect from initial nodes
+(except manually configured ones) to avoid overloading them. They’re
+initial nodes for many other nodes.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Selma sends a <code>getaddr</code> message to a peer, Rashid’s node. Rashid
+responds with a set of IP addresses and TCP ports that Selma can use to
+connect to more peers. Rashid chooses which addresses to send to Selma,
+but it’s usually the addresses to which Rashid is already connected and
+possibly some that Rashid collected from his peers but didn’t use
+himself.</p>
+</div>
+<div class="paragraph">
+<p>Selma will connect to any number of the received addresses to increase
+her <em>connectivity</em>. The more peers you’re connected to, the better
+your connectivity. A high degree of connectivity decreases the risk of
+missing out on information due to misbehaving peers. Also, information
+propagates more quickly if nodes have higher connectivity. A typical
+full node in Bitcoin has about 100 active connections at the same
+time.  Only eight (by default) of those are <em>outbound connections</em>,
+meaning connections initiated by that node. The rest are <em>inbound
+connections</em> initiated by other nodes. Consequently, a full node that
+isn’t reachable on port 8333 from the internet—for example, due to a
+firewall—won’t get more than eight connections in total.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_step_3synchronize">8.7.3. Step 3—Synchronize</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-11.svg" alt="u08 11">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now that Selma is well-connected to, and part of, the Bitcoin network,
+it’s time for her to download and verify the full blockchain up to the
+latest block available. This process is called <em>synchronization</em>,
+<em>sync</em>, or <em>initial blockchain download</em>.</p>
+</div>
+<div class="paragraph">
+<p>Selma has only a single block: the genesis block. The genesis block is
+hardcoded in the Bitcoin Core software, so all nodes have this block
+when they start.</p>
+</div>
+<div class="paragraph">
+<p>She needs to download all historic blocks from her peers and verify
+them before she can verify newly created blocks. This is because she
+has no idea what the current unspent transaction output (UTXO) set
+looks like.  To build the current UTXO set, she needs to start with an
+empty UTXO set, go through all historic blocks from block 0, and
+update the UTXO set with the information in the transactions in the
+blocks.</p>
+</div>
+<div class="paragraph">
+<p>The process is as follows:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Download all historic block headers from one peer, and verify the
+proof of work.</p>
+</li>
+<li>
+<p>Download all blocks on the strongest chain from multiple peers in
+parallel.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Selma selects one of her peers, Tom, to download all block headers
+from.  <a href="#fig0834">Figure 34</a> shows how Selma’s node downloads the block headers
+from Tom’s node.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Simplified</div>
+<div class="paragraph">
+<p>The <code>getheaders</code> message contains a list of some block IDs from Selma’s
+blockchain so that Tom can find a common block they both have in case
+Tom doesn’t have Selma’s tip. Let’s not bother with that.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>She sends a <code>getheaders</code> message containing Selma’s latest block ID,
+which happens to be the genesis block, block 0. Tom sends back a list of
+2,000 block headers; each block header is 80 bytes. Selma verifies each
+header’s proof of work and requests a new batch of headers from Tom.
+This process continues until Selma receives a batch of fewer than 2,000
+headers from Tom, which is a signal that he has no more headers to give
+her.</p>
+</div>
+<div id="fig0834" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-34.svg" alt="08 34" width="75%">
+</div>
+<div class="title">Figure 34. Selma downloads block headers from Tom by repeatedly sending a <code>getheaders</code> message with her latest block ID.</div>
+</div>
+<div class="paragraph">
+<p>When Selma has received all the headers from Tom, she determines which
+branch is the strongest and starts downloading actual block data
+belonging to that branch from her peers. She can download block data
+from multiple peers at the same time to speed things up. <a href="#fig0835">Figure 35</a>
+shows her communication with Rashid’s node.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Bigger batches</div>
+<div class="paragraph">
+<p>In this example, Selma requests 3 blocks at a time, but in reality,
+Bitcoin Core would request a list of at most 16 blocks per batch.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>It starts with Selma, who sends a <code>getdata</code> message to Rashid. This
+message specifies which blocks she wants to download from Rashid, who
+sends back the requested blocks in <code>block</code> messages, one by one. Note
+that Selma downloads only some of the blocks from Rashid. She also
+downloads blocks from Tom in parallel, which is why there are gaps in
+the sequence of requested blocks. The process repeats until Selma
+doesn’t want any more blocks from Rashid.</p>
+</div>
+<div id="fig0835" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-35.svg" alt="08 35" width="75%">
+</div>
+<div class="title">Figure 35. Selma downloads blocks from Rashid by repeatedly sending a <code>getdata</code> message with a list block IDs she wants the blocks for.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Initial download</div>
+<div class="paragraph movingtarget">
+<p>The initial blockchain download, about 210 GB as of this writing, takes
+several hours, even days, depending on your hardware performance and
+internet speed.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>As Selma downloads blocks, Rashid will probably receive more fresh
+blocks from his peers. Suppose he has received a new block by the time
+Selma has received the first 100 blocks from Rashid. Rashid will then
+send out a <code>headers</code> message to his peers, including Selma, as
+described in <a href="#include-the-transaction-in-a-block">Section 8.4.4</a>. This way, Selma
+will be aware of all new blocks appearing during her initial
+synchronization and can later request them from any peer.</p>
+</div>
+<div class="paragraph">
+<p>As Selma receives blocks, she verifies them, updates her UTXO set, and
+adds them to her own blockchain.</p>
+</div>
+<div class="sect4">
+<h5 id="validating-early-blocks">Verifying early blocks</h5>
+<div class="paragraph">
+<p>The most time-consuming part of verifying a block is verifying the
+transaction signatures. If you know of any block ID that’s part of a
+valid blockchain, you can skip verifying the signatures of all blocks
+prior to and including this block (<a href="#fig0836">Figure 36</a>). This will greatly speed
+up the initial blockchain download up to that block.</p>
+</div>
+<div id="fig0836" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-36.svg" alt="08 36" width="75%">
+</div>
+<div class="title">Figure 36. To speed up initial block download, signatures of reasonably old transactions won’t be verified.</div>
+</div>
+<div class="paragraph">
+<p>Of course, other stuff, like verifying that no double spends occur or
+that the block rewards are correct, is still done. The syncing node must
+build its own UTXO set, so it must still go through all transactions to
+be able to update the UTXO set accordingly.</p>
+</div>
+<div class="paragraph">
+<p>Bitcoin Core ships with a preconfigured block ID of a block from some
+weeks back from the release date. For Bitcoin Core 0.17.0, that block is</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>height: 534292
+hash: 0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This is about 10,000 blocks back in the blockchain at release date. This
+is, of course, a configuration parameter, and the aforementioned block
+is just a default reasonable value. Selma could have changed this when
+starting her node, or she could have verified with friends and other
+sources she trusts that this block is in fact representing an “all valid
+transactions blockchain.” She could also have disabled the feature to
+verify all transaction signatures since block 0.</p>
+</div>
+<div class="paragraph">
+<p>After a while, Selma is finally on the same page as the other nodes and
+ready to enter the normal mode of operation.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_step_4normal_operation">8.7.4. Step 4—Normal operation</h4>
+<div class="paragraph">
+<p>This step is easy because we already discussed it in
+<a href="#the-network-protocol">Section 8.4</a>. Selma enters the normal mode of
+operation. From now on, she’ll participate in block propagation and
+transaction propagation, and verify every transaction and block coming
+in (<a href="#fig0837">Figure 37</a>).</p>
+</div>
+<div class="paragraph">
+<p>Selma is now running a full-blown full node.</p>
+</div>
+<div id="fig0837" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-37.svg" alt="08 37" width="50%">
+</div>
+<div class="title">Figure 37. Selma is finally an active part of the Bitcoin peer-to-peer network.</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="run-your-own-full-node">8.8. Running your own full node</h3>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Online instructions</div>
+<div class="paragraph">
+<p>More detailed instructions for all major OSs are available at
+<a href="#web-install">[web-install]</a>.</p>
+</div>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+This section will walk you through setting up your own Bitcoin Core full
+node on a Linux OS. It’s intended for readers comfortable with the Linux
+OS and command line.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>You’ve seen how a Bitcoin full node is downloaded, started, and
+synchronized in theory. This section will help you install your own full
+node.</p>
+</div>
+<div class="paragraph">
+<p>This section requires that you</p>
+</div>
+<div class="ulist movingtarget">
+<ul>
+<li>
+<p>Have a computer with at least 2 GB of RAM running a Linux OS.</p>
+</li>
+<li>
+<p>Have lots of available disk space. As of this writing, about 210 GB is
+needed.</p>
+</li>
+<li>
+<p>Have an internet connection without a limited data plan.</p>
+</li>
+<li>
+<p>Know how to start and use a command-line terminal.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If you don’t have a Linux OS, you can still use these instructions;
+but you’ll have to install the version of Bitcoin Core that’s
+appropriate for your system, and the commands will look different. I
+suggest that you visit <a href="#web-install">[web-install]</a> to get up-to-date instructions
+for your non-Linux OS.</p>
+</div>
+<div class="paragraph">
+<p>The general process for getting your own node running is as follows:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Download Bitcoin Core from <a href="https://bitcoincore.org/en/download" class="bare">https://bitcoincore.org/en/download</a>.</p>
+</li>
+<li>
+<p>Verify the software.</p>
+</li>
+<li>
+<p>Unpack and start.</p>
+</li>
+<li>
+<p>Wait for the initial blockchain download to finish.</p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="_downloading_bitcoin_core">8.8.1. Downloading Bitcoin Core</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-12.svg" alt="u08 12">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>To run your own full Bitcoin node, you need the software program
+to run.  In this example, you’ll download Bitcoin Core from
+<a href="#web-download">[web-download]</a>. As of this writing, the latest version of Bitcoin
+Core is 0.17.0. Let’s download it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ wget https://bitcoincore.org/bin/bitcoin-core-0.17.0/\
+    bitcoin-0.17.0-x86_64-linux-gnu.tar.gz</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As the filename bitcoin-0.17.0-x86_64-linux-gnu.tar.gz indicates, the
+command downloads version 0.17.0 for 64-bit (x86_64) Linux
+(linux-gnu).  By the time you read this, new versions of Bitcoin Core
+will probably have been released. Consult <a href="#web-download">[web-download]</a> to get
+the latest version of Bitcoin Core. Also, if you use another OS or
+computer architecture, please select the file that’s right for you.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_verifying_the_software">8.8.2. Verifying the software</h4>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+This section is hard and requires a fair amount of work on the command
+line. If you just want to install and run the Bitcoin Core software
+for experimental purposes, you can skip this section and jump to
+<a href="#unpack-and-start">Section 8.8.3</a>. If you aren’t using it for experimental
+purposes, please understand the risks explained earlier in this
+chapter in <a href="#step-1">Section 8.7.1</a> before skipping this step.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>This section will show you how to verify that the downloaded .tar.gz
+file hasn’t been tampered with in any way. This file is digitally signed
+by the Bitcoin Core team’s private key. The verification process
+involves the following steps:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Download the signature file.</p>
+</li>
+<li>
+<p>Verify that the hash of the .tar.gz file matches the hash in the
+message part of the signature file.</p>
+</li>
+<li>
+<p>Download the Bitcoin Core team’s public key.</p>
+</li>
+<li>
+<p>Install the public key as trusted on your computer.</p>
+</li>
+<li>
+<p>Verify the signature.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Let’s get started.</p>
+</div>
+<div class="sect4">
+<h5 id="_downloading_the_signature_file">Downloading the signature file</h5>
+<div class="paragraph">
+<p>To verify that your downloaded Bitcoin Core package is actually from
+the Bitcoin Core team, you need to download the signature file named
+SHA256SUMS.asc. <a href="#fig0838">Figure 38</a>, repeated from <a href="#step-1">Section 8.7.1</a>, explains how
+the SHA256SUMS.asc file is designed.</p>
+</div>
+<div id="fig0838" class="imageblock">
+<div class="content">
+<img src="images/ch08/08-38.svg" alt="08 38" width="75%">
+</div>
+<div class="title">Figure 38. The Bitcoin Core team signs the released program with their private key.</div>
+</div>
+<div class="paragraph">
+<p>Download the signature file SHA256SUMS.asc from the same server you
+downloaded the program from:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ wget https://bitcoincore.org/bin/bitcoin-core-0.17.0/SHA256SUMS.asc</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This file will be used to verify that the downloaded .tar.gz file is
+signed by the Bitcoin Core team. Note that this file is for version
+0.17.0 only. If you use another version of Bitcoin Core, please select
+the correct signature file at <a href="#web-download">[web-download]</a>.</p>
+</div>
+<div class="paragraph">
+<p>The following listing shows what the contents of this file look like
+(the actual hashes have been shortened):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+1e43...35ed  bitcoin-0.17.0-aarch64-linux-gnu.tar.gz
+a4ff...7585  bitcoin-0.17.0-arm-linux-gnueabihf.tar.gz
+967a...f1b7  bitcoin-0.17.0-i686-pc-linux-gnu.tar.gz
+e421...5d61  bitcoin-0.17.0-osx64.tar.gz
+0aea...ac58  bitcoin-0.17.0-osx.dmg
+98ef...785e  bitcoin-0.17.0.tar.gz
+1f40...8ee7  bitcoin-0.17.0-win32-setup.exe
+402f...730d  bitcoin-0.17.0-win32.zip
+b37f...0b1a  bitcoin-0.17.0-win64-setup.exe
+d631...0799  bitcoin-0.17.0-win64.zip
+9d6b...5a4f  bitcoin-0.17.0-x86_64-linux-gnu.tar.gz
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBCAAGBQJbtIOFAAoJEJDIAZ42wulk5aQP/0tQp+EwFQPtSJgtmjYucw8L
+SskGHj76SviCBSfCJ0LKjBdnQ4nbrIBsSuw0oKYLVN6OIFIp6hvNSfxin1S8bipo
+hCLX8xB0FuG4jVFHAqo8PKmF1XeB7ulfOkYg+qF3VR/qpkrjzQJ6S/nnrgc4bZu+
+lXzyUBH+NNqqlMeTRzYW92g0zGMexig/ZEMqigMckTiFDrTUGkQjJGzwlIy73fXI
+LZ/KtZYDUw82roZINXlp4oNHDQb8qT5R1L7ACvqmWixbq49Yqgt+MAL1NG5hvCSW
+jiVX4fasHUJLlvVbmCH2L42Z+W24VCWYiy691XkZ2D0+bmllz0APMSPtgVEWDFEe
+wcUeLXbFGkMtN1EDCLctQ6/DxYk3EM2Ffxkw3o5ehTSD6LczqNC7wG+ysPCjkV1P
+O4oT4AyRSm/sP/o4qxvx/cpiRcu1BQU5qgIJDO+sPmCKzPn7wEG7vBoZGOeybxCS
+UUPEOSGan1Elc0Jv4/bvbJ0XLVJPVC0AHk1dDE9zg/0PXof9lcFzGffzFBI+WRT3
+zf1rBPKqrmQ3hHpybg34WCVmsvG94Zodp/hiJ3mGsxjqrOhCJO3PByk/F5LOyHtP
+wjWPoicI2pRin2Xl/YTVAyeqex519XAnYCSDEXRpe+W4BdzFoOJwm5S6eW8Q+wkN
+UtaRwoYjFfUsohMZ3Lbt
+=H8c2
+-----END PGP SIGNATURE-----</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The signed message in the upper part of the file lists several files
+along with their respective SHA256 hashes. The listed files are
+installation packages for all OSs and architectures for which Bitcoin
+Core is released. The lower part of the file is the signature of the
+message in the upper part. The signature commits to the entire message
+and thus to all the hashes and files listed in the message.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_verifying_the_hash_of_the_downloaded_file">Verifying the hash of the downloaded file</h5>
+<div class="paragraph">
+<p>The file you downloaded is named bitcoin-0.17.0-x86_64-linux-gnu.tar.gz
+so you expect that the SHA256 hash of that file matches <code>9d6b…5a4f</code>
+exactly. Let’s check:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ sha256sum bitcoin-0.17.0-x86_64-linux-gnu.tar.gz
+9d6b472dc2aceedb1a974b93a3003a81b7e0265963bd2aa0acdcb17598215a4f  bitcoin-0.17.0-x86_64-linux-gnu.tar.gz</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This command calculates the SHA256 hash of your downloaded file. It does
+indeed match the hash in the SHA256SUMS.asc file. If they don’t match,
+then something is wrong, and you should halt the installation and
+investigate.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_getting_the_bitcoin_core_signing_key">Getting the Bitcoin Core signing key</h5>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-13.svg" alt="u08 13">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify that the signature in the signature file was done using the
+Bitcoin Core signing key, you need the corresponding public key. As
+noted in <a href="#step-1">Section 8.7.1</a>, you should convince yourself about what
+fingerprint the Bitcoin Core key has and then download that key from
+any source.</p>
+</div>
+<div class="paragraph">
+<p>You could, for example,</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Get the fingerprint of the Bitcoin Core team’s key from
+<a href="https://bitcoincore.org" class="bare">https://bitcoincore.org</a>, the official website of the Bitcoin Core
+team.</p>
+</li>
+<li>
+<p>Consult the book <em>Grokking Bitcoin</em> to verify the fingerprint.</p>
+</li>
+<li>
+<p>Verify the fingerprint with a friend.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Start by finding the Bitcoin Core team’s public key fingerprint on their
+website. You find the following fingerprint on the downloads page:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>01EA5486DE18A882D4C2684590C8019E36C2E964</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now, consult the book <em>Grokking Bitcoin</em> to check if the fingerprint
+in that book matches the fingerprint from
+<a href="https://bitcoincore.org" class="bare">https://bitcoincore.org</a>. Look in the <a href="#step-1">Section 8.7.1</a> of <a href="#ch08">Chapter 8</a> of that
+book. It says</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>01EA 5486 DE18 A882 D4C2  6845 90C8 019E 36C2 E964</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This is the same fingerprint (although formatted slightly
+differently).  The book and the website <a href="https://bitcoincore.org" class="bare">https://bitcoincore.org</a> both
+claim that this key belongs to the Bitcoin Core team. Let’s not settle
+for that. You’ll also call a friend you trust and have her read the
+fingerprint to you:</p>
+</div>
+<div class="paragraph">
+<p><strong>You:</strong> “Hello, Donna! What’s the fingerprint of the current Bitcoin Core
+signing key?”</p>
+</div>
+<div class="paragraph">
+<p><strong>Donna:</strong> “Hi! I verified that key myself a few months ago, and I know
+the fingerprint is <code>01EA 5486 DE18 A882 D4C2 6845 90C8 019E 36C2 E964</code>.”</p>
+</div>
+<div class="paragraph">
+<p><strong>You:</strong> “Thank you, it matches mine. Goodbye!”</p>
+</div>
+<div class="paragraph">
+<p><strong>Donna:</strong> “You’re welcome. Goodbye!”</p>
+</div>
+<div class="paragraph">
+<p>Donna’s statement further strengthens your trust in this key. You think
+you’ve collected enough evidence that this is, in fact, the correct key.</p>
+</div>
+<div class="paragraph">
+<p>Let’s start downloading the key. To do this, you can use a tool called
+gpg, which stands for GnuPG, which in turn stands for Gnu Privacy Guard.
+This program conforms to a standard called OpenPGP (Pretty Good
+Privacy). This standard specifies how keys can be exchanged and how to
+do encryption and digital signatures in an interoperable way.</p>
+</div>
+<div class="paragraph">
+<p>GnuPG is available on most Linux computers by default. To download a
+public key with a certain fingerprint, you run the following <code>gpg</code>
+command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ gpg --recv-keys 01EA5486DE18A882D4C2684590C8019E36C2E964
+gpg: key 90C8019E36C2E964: public key "Wladimir J. van der Laan (Bitcoin Core binary release signing key) &lt;laanwj@gmail.com&gt;" imported
+gpg: no ultimately trusted keys found
+gpg: Total number processed: 1
+gpg:               imported: 1</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Depending on the version of gpg you use, the output can vary. This
+command downloads the public key from any available key server and
+verifies that the downloaded public key in fact has the fingerprint that
+you requested. The owner of this key is “Wladimir J. van der Laan
+(Bitcoin Core binary release signing key).”</p>
+</div>
+<div class="paragraph">
+<p>The prior command downloads the key into gpg and adds it to your list of
+known keys. But the output of this command mentions “no ultimately
+trusted keys found.” This means this key isn’t signed by any key that
+you trust. You’ve only imported the key. In gpg, keys can sign other
+keys to certify that the signed key is legit.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_signing_the_public_key_as_trusted_on_your_computer">Signing the public key as trusted on your computer</h5>
+<div class="paragraph">
+<p>You’ve verified that the key belongs to the Bitcoin Core team and
+installed that key onto your system using gpg.</p>
+</div>
+<div class="paragraph">
+<p>You’ll now sign that key with a private key that you own. You do this to
+remember this key as trusted. The Bitcoin Core team will probably
+release new versions of Bitcoin Core in the future. If GnuPG remembers
+this public key as trusted, you won’t have to go through all these
+key-verification steps again when you upgrade.</p>
+</div>
+<div class="paragraph">
+<p>The process is as follows:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Create a key of your own.</p>
+</li>
+<li>
+<p>Sign the Bitcoin Core public key with your own private key.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>GnuPG lets you create a key of your own with the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ gpg --gen-key
+gpg (GnuPG) 2.1.18; Copyright (C) 2017 Free Software Foundation, Inc.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Note: Use "gpg --full-generate-key" for a full featured key generation dialog.
+
+GnuPG needs to construct a user ID to identify your key.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>GnuPG will ask for your name and email address. Answer these
+questions; they’ll be used to identify your key:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Real name: Kalle Rosenbaum
+Email address: kalle@example.com
+You selected this USER-ID:
+    "Kalle Rosenbaum &lt;kalle@example.com&gt;"
+
+Change (N)ame, (E)mail, or (O)kay/(Q)uit?</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Continue by pressing O (capital letter “oh”). You then need to select a
+password with which to encrypt your private key. Choose a password, and
+make sure you remember it.</p>
+</div>
+<div class="paragraph">
+<p>Key generation might take a while, because it takes time to generate
+good random numbers for your key. When it’s finished, you should see
+output like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>public and secret key created and signed.
+
+pub   rsa2048 2018-04-27 [SC] [expires: 2020-04-26]
+      B8C0D19BB7E17E5CEC6D69D487C0AC3FEDA7E796
+      B8C0D19BB7E17E5CEC6D69D487C0AC3FEDA7E796
+uid                      Kalle Rosenbaum &lt;kalle@example.com&gt;
+sub   rsa2048 2018-04-27 [E] [expires: 2020-04-26]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You now have a key of your own that you’ll use to sign keys that you
+trust. Let’s sign the Bitcoin Core team key:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ gpg --sign-key 01EA5486DE18A882D4C2684590C8019E36C2E964
+
+pub  rsa4096/90C8019E36C2E964
+     created: 2015-06-24  expires: 2019-02-14  usage: SC
+     trust: unknown       validity: unknown
+[ unknown] (1). Wladimir J. van der Laan (Bitcoin Core binary release signing key) &lt;laanwj@gmail.com&gt;
+
+
+pub  rsa4096/90C8019E36C2E964
+     created: 2015-06-24  expires: 2019-02-14  usage: SC
+     trust: unknown       validity: unknown
+ Primary key fingerprint: 01EA 5486 DE18 A882 D4C2  6845 90C8 019E 36C2 E964
+
+     Wladimir J. van der Laan (Bitcoin Core binary release signing key) &lt;laanwj@gmail.com&gt;
+
+This key is due to expire on 2019-02-14.
+Are you sure that you want to sign this key with your
+key "Kalle Rosenbaum &lt;kalle@example.com&gt;" (8DC7D3846BA6AB5E)
+
+Really sign? (y/N)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Enter <code>y</code>. You’ll be prompted for your private key password. Enter it,
+and press Enter. The Bitcoin Core key should now be regarded as trusted
+by gpg. This will simplify the process when you upgrade your node in the
+future.</p>
+</div>
+<div class="paragraph">
+<p>Let’s look at your newly signed key:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ gpg --list-keys 01EA5486DE18A882D4C2684590C8019E36C2E964
+pub   rsa4096 2015-06-24 [SC] [expires: 2019-02-14]
+      01EA5486DE18A882D4C2684590C8019E36C2E964
+uid           [  full  ] Wladimir J. van der Laan (Bitcoin Core binary release signing key) &lt;laanwj@gmail.com&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The word to look for is <code>full</code> in square brackets. This means gpg, and
+you, fully trust this key.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_verifying_the_signature">Verifying the signature</h5>
+<div class="paragraph">
+<p>It’s time to verify the signature of the SHA256SUMS.asc file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ gpg --verify SHA256SUMS.asc
+gpg: Signature made Wed 03 Oct 2018 10:53:25 AM CEST
+gpg:                using RSA key 90C8019E36C2E964
+gpg: Good signature from "Wladimir J. van der Laan (Bitcoin Core binary release signing key) &lt;laanwj@gmail.com&gt;" [full]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It says that the signature is <code>Good</code> and that it’s signed with a key
+that you fully trust, <code>[full]</code>.</p>
+</div>
+<div class="paragraph">
+<p>To summarize, you’ve done the following:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Downloaded Bitcoin Core and the signature file</p>
+</li>
+<li>
+<p>Verified that the hash of the .tar.gz file matches the stated hash in
+SHA256SUMS.asc</p>
+</li>
+<li>
+<p>Downloaded a public key and verified that it belongs to Bitcoin Core</p>
+</li>
+<li>
+<p>Signed that key with your own private key so GnuPG and you remember that
+the Bitcoin Core key is legit</p>
+</li>
+<li>
+<p>Verified the signature of the SHA256SUMS.asc file</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>When you later upgrade the program, you can skip several of these steps.
+The process will then be</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Download Bitcoin Core and the signature file.</p>
+</li>
+<li>
+<p>Verify that the hash of the .tar.gz file matches the stated hash in
+SHA256SUMS.asc.</p>
+</li>
+<li>
+<p>Verify the signature of the SHA256SUMS.asc file.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="unpack-and-start">8.8.3. Unpacking and starting</h4>
+<div class="paragraph">
+<p>Let’s unpack the software:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>tar -zxvf bitcoin-0.17.0-x86_64-linux-gnu.tar.gz</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will create a directory called bitcoin-0.17.0. Go into the
+directory bitcoin-0.17.0/bin, and have a look:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ cd bitcoin-0.17.0/bin
+$ ls
+bitcoin-cli  bitcoind  bitcoin-qt  bitcoin-tx  test_bitcoin</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here you have several executable programs:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>bitcoin-cli is a program you can use to extract information about the
+node you’re running as well as manage a built-in wallet that’s shipped
+with Bitcoin Core.</p>
+</li>
+<li>
+<p>bitcoind is the program to use if you want to run the node in the
+background without a graphical user interface (GUI).</p>
+</li>
+<li>
+<p>bitcoin-qt is the program to run if you want a GUI for your node. This
+is mainly useful if you use the built-in wallet.</p>
+</li>
+<li>
+<p>bitcoin-tx is a small utility program to create and modify Bitcoin
+transactions.</p>
+</li>
+<li>
+<p>test_bitcoin lets you test run a test suite.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In this tutorial, you’ll run bitcoind, which stands for “Bitcoin
+daemon.” In UNIX systems such as Linux, the word <em>daemon</em> is used for
+computer programs that run in the background.</p>
+</div>
+<div class="paragraph">
+<p>Let’s start the Bitcoin Core daemon in the background and see what
+happens:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ ./bitcoind -daemon
+Bitcoin server starting</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This starts your node. It will automatically begin connecting to peers
+and downloading the blockchain for you.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_initial_blockchain_download">8.8.4. Initial blockchain download</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-14.svg" alt="u08 14">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>This process will take time. Depending on your internet connection,
+processor, and disk, it can vary from several days down to a few hours.</p>
+</div>
+<div class="paragraph">
+<p>You can use the bitcoin-cli program to query the running node about
+the download progress, as in the following:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ ./bitcoin-cli getblockchaininfo
+{
+  "chain": "main",
+  "blocks": 207546,
+  "headers": 549398,
+  "bestblockhash": "00000000000003a6a5f2f360f02a3b8e4c214d27bd8e079a70f5fb630a0817c5",
+  "difficulty": 3304356.392990344,
+  "mediantime": 1352672365,
+  "verificationprogress": 0.0249296506976196,
+  "initialblockdownload": true,
+  "chainwork": "0000000000000000000000000000000000000000000000202ad90c17ec6ea33c",
+  "size_on_disk": 11945130882,
+  "pruned": false,
+  "softforks": [
+    {
+      "id": "bip34",
+      "version": 2,
+      "reject": {
+        "status": false
+      }
+    },
+    {
+      "id": "bip66",
+      "version": 3,
+      "reject": {
+        "status": false
+      }
+    },
+    {
+      "id": "bip65",
+      "version": 4,
+      "reject": {
+        "status": false
+      }
+    }
+  ],
+  "bip9_softforks": {
+    "csv": {
+      "status": "defined",
+      "startTime": 1462060800,
+      "timeout": 1493596800,
+      "since": 0
+    },
+    "segwit": {
+      "status": "defined",
+      "startTime": 1479168000,
+      "timeout": 1510704000,
+      "since": 0
+    }
+  },
+  "warnings": ""
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This command shows a lot of information about the blockchain. Note that
+blocks have been downloaded and verified up to height 207546. Bitcoin
+Core will download block headers prior to the full blocks to verify
+proof of work. This node has downloaded headers up to height 549398,
+which are all the headers there are at this time. Another interesting
+thing is the <code>initialblockdownload</code> field, which will remain <code>true</code>
+until the initial block download is finished.</p>
+</div>
+<div class="paragraph">
+<p>Keep this daemon running. You’ll get back to it in appendix A, where
+I’ll give you a small tutorial on how to use bitcoin-cli to examine the
+blockchain and use your built-in wallet.</p>
+</div>
+<div class="paragraph">
+<p>If you want to stop the node, issue the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ ./bitcoin-cli stop</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can start the node again whenever you like, and the node will begin
+where it left off.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_recap">8.9. Recap</h3>
+<div class="paragraph">
+<p>We’ve replaced the last central point of authority, the shared folder,
+with a peer-to-peer network. In a peer-to-peer network, the full nodes
+communicate directly with each other. Each node is connected to several
+(potentially hundreds of) other nodes. This makes it extremely hard to
+prevent blocks and transactions from propagating the network.</p>
+</div>
+<div class="paragraph">
+<p>This chapter had two main parts:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>How transactions and blocks flow through the network</p>
+</li>
+<li>
+<p>How new nodes join the network</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="_part_1following_a_transaction">8.9.1. Part 1—Following a transaction</h4>
+<div class="paragraph">
+<p>In the first part of the chapter, we followed a transaction through the
+system. It started with John buying a cookie. His transaction was
+propagated across the peer-to-peer network and to the cafe’s wallet.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-15.svg" alt="u08 15" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>The cafe will almost immediately see that a transaction is incoming, but
+it’s not yet confirmed. The next stage is to mine the block. Rashid is
+the lucky miner who finds the next block containing John’s transaction.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-16.svg" alt="u08 16" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>Rashid sends out the block to his peers, who will relay it to their
+peers and so on until the block has reached the entire network. Part of
+this propagation includes sending the block to lightweight wallets.
+These lightweight wallets will request <code>merkleblock</code> messages from the
+full node so they don’t have to download the full block.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_part_2joining_the_network">8.9.2. Part 2—Joining the network</h4>
+<div class="paragraph">
+<p>Starting a new node involves fours steps:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-17.svg" alt="u08 17" width="100%">
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Download and verify, for example, the Bitcoin Core software. Then
+start it.</p>
+</li>
+<li>
+<p>Connect to other nodes.</p>
+</li>
+<li>
+<p>Download historic blocks.</p>
+</li>
+<li>
+<p>Enter normal operation.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_system_changes">8.9.3. System changes</h4>
+<div class="paragraph">
+<p>The table of concept mappings between the cookie token system and
+Bitcoin has become tiny (<a href="#tab0802">Table 2</a>).</p>
+</div>
+<table id="tab0802" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 2. The shared folder has been ditched in favor of a peer-to-peer network.</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cookie tokens</th>
+<th class="tableblock halign-left valign-top">Bitcoin</th>
+<th class="tableblock halign-left valign-top">Covered in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 cookie token</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 bitcoin</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch02">[ch02]</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Given that there are no longer any technical differences between the
+cookie token system and the Bitcoin system, we’ll drop the cookie tokens
+and work only with Bitcoin from now on.</p>
+</div>
+<div class="paragraph">
+<p>This will be the final release of the cookie token system. Another, much
+more widely used system, Bitcoin, has taken the world by storm, and
+we’ve decided to ditch the cookie token project. Enjoy the last version
+(<a href="#tab0803">Table 3</a>).</p>
+</div>
+<table id="tab0803" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 3. Release notes, cookie tokens 8.0</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Feature</th>
+<th class="tableblock halign-left valign-top">How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><span class="image gbnew"><img src="images/common/new.svg" alt="new"></span>8.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Censorship-resistant; for real this time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Shared folder replaced by a peer-to-peer network</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Transaction broadcasting</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Transactions broadcast to miners and others using the peer-to-peer
+network</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">7.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Censorship-resistant</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Multiple miners, “Lisas,” enabled by proof of work</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Anyone can join the mining race</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Automatic difficulty adjustments</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">6.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prevent Lisa from deleting transactions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Signed blocks in a blockchain</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fully validating nodes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Download and verify the entire blockchain.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lightweight wallet saves data traffic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bloom filters and merkle proofs</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_exercises">8.10. Exercises</h3>
+<div class="sect3">
+<h4 id="_warm_up">8.10.1. Warm up</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Why is the shared folder a bad idea?</p>
+</li>
+<li>
+<p>What does it mean to relay a transaction or a block?</p>
+</li>
+<li>
+<p>What are <code>inv</code> messages used for?</p>
+</li>
+<li>
+<p>How does the full node decide what transactions to send to
+lightweight wallets?</p>
+</li>
+<li>
+<p>How does a node notify a lightweight wallet about an incoming
+pending transaction?</p>
+</li>
+<li>
+<p>Blocks aren’t sent in full to lightweight wallets. What part of
+the block is always sent to the wallet?</p>
+</li>
+<li>
+<p>Why does the cafe send a very big bloom filter to its trusted
+node?</p>
+</li>
+<li>
+<p>What would a security-conscious person do after downloading
+Bitcoin Core but before starting the software?</p>
+</li>
+<li>
+<p>What types of sources for peer addresses are available to a
+newly started node?</p>
+</li>
+<li>
+<p>How would a full node know if any newly created blocks are available
+for download when it’s finished syncing?</p>
+</li>
+<li>
+<p>The Bitcoin peer-to-peer network consists of the following
+nodes:</p>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-18.svg" alt="u08 18" width="50%">
+</div>
+</div>
+<div class="paragraph">
+<p>Which node owners do you need to threaten to prevent Lisa from getting
+any blocks but those she creates herself?</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_dig_in">8.10.2. Dig in</h4>
+<div class="olist arabic">
+<ol class="arabic" start="12">
+<li>
+<p>Suppose Qi just received two transactions with transaction IDs
+TXID<sub>1</sub> and TXID<sub>2</sub>. She now wants to inform Rashid about these new
+transactions. She doesn’t know if Rashid already knows about them. What
+does she do?</p>
+</li>
+<li>
+<p>Suppose you’re running a full node and experience a power
+outage for 18 minutes. When power comes back, you start your node again.
+During those 18 minutes, two blocks, B<sub>1</sub> and B<sub>2</sub>, have been created.
+Your latest block is B<sub>0</sub>. What will your node do after reconnecting to
+the network? For simplicity, assume that no new blocks are found during
+synchronization, and that you have only one peer. Use this table of
+message types to fill out the following template:</p>
+<table class="tableblock frame-all grid-all fit-content">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Data</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>block</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full block</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sends a block to a peer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getheaders</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Block ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Asks a peer for subsequent block headers after the given block ID</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getdata</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">txids or block IDs</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requests data from a peer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>headers</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">List of headers</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sends a list of headers to a peer</p></td>
+</tr>
+</tbody>
+</table>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch08/u08-20.svg" alt="u08 20" width="100%">
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_summary">8.11. Summary</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>The peer-to-peer network makes blocks censorship-resistant.</p>
+</li>
+<li>
+<p>A node connects to multiple peers to reduce their vulnerability for
+information hiding.</p>
+</li>
+<li>
+<p>The Bitcoin network protocol is the “language” nodes speak to
+communicate.</p>
+</li>
+<li>
+<p>Transactions are broadcast on the Bitcoin peer-to-peer network to
+reach both miners and the recipient of the money early.</p>
+</li>
+<li>
+<p>New nodes synchronize with the Bitcoin network to get up to date
+with the other nodes. This takes hours or days.</p>
+</li>
+<li>
+<p>Nodes don’t need to stay online 24/7. They can drop out and come
+back and sync up the latest stuff.</p>
+</li>
+<li>
+<p>Signature verification can be skipped for older blocks to speed up
+initial synchronization. This is useful if you know a specific block
+is valid.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2021-05-19 10:45:14 +0200
+</div>
+</div>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</body>
+</html>

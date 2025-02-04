@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.15">
+<meta name="author" content="Kalle Rosenbaum">
+<title>Grokking Bitcoin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<link rel="stylesheet" href="style/asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="style/grokking-bitcoin.css">
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>Grokking Bitcoin</h1>
+<div class="details">
+<span id="author" class="author">Kalle Rosenbaum</span><br>
+</div>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#ch02">2. Cryptographic hash functions and digital signatures</a>
+<ul class="sectlevel2">
+<li><a href="#_the_cookie_token_spreadsheet">2.1. The cookie token spreadsheet</a></li>
+<li><a href="#cryptographic_hashing">2.2. Cryptographic hashes</a>
+<ul class="sectlevel3">
+<li><a href="#_why_are_cryptographic_hash_functions_useful">2.2.1. Why are cryptographic hash functions useful?</a></li>
+<li><a href="#how-does-a-cryptographic-hash-function-work">2.2.2. How does a cryptographic hash function work?</a></li>
+<li><a href="#_properties_of_a_cryptographic_hash_function">2.2.3. Properties of a cryptographic hash function</a></li>
+<li><a href="#_illustration_of_hard">2.2.4. Illustration of “hard”</a></li>
+<li><a href="#_some_well_known_hash_functions">2.2.5. Some well-known hash functions</a></li>
+<li><a href="#_recap_of_cryptographic_hashes">2.2.6. Recap of cryptographic hashes</a></li>
+<li><a href="#_exercises">2.2.7. Exercises</a></li>
+</ul>
+</li>
+<li><a href="#_digital_signatures">2.3. Digital signatures</a>
+<ul class="sectlevel3">
+<li><a href="#_typical_use_of_digital_signatures">2.3.1. Typical use of digital signatures</a></li>
+<li><a href="#improving-cookie-token-security">2.3.2. Improving cookie token security</a></li>
+<li><a href="#_preparation_john_generates_a_key_pair">2.3.3. Preparation: John generates a key pair</a></li>
+<li><a href="#_recap_of_key_pairs">2.3.4. Recap of key pairs</a></li>
+<li><a href="#_where_were_we">2.3.5. Where were we?</a></li>
+<li><a href="#_john_signs_his_payment">2.3.6. John signs his payment</a></li>
+<li><a href="#_lisa_verifies_the_signature">2.3.7. Lisa verifies the signature</a></li>
+<li><a href="#_private_key_security">2.3.8. Private key security</a></li>
+</ul>
+</li>
+<li><a href="#_recap">2.4. Recap</a></li>
+<li><a href="#_exercises_2">2.5. Exercises</a>
+<ul class="sectlevel3">
+<li><a href="#_warm_up_2">2.5.1. Warm up</a></li>
+<li><a href="#_dig_in_2">2.5.2. Dig in</a></li>
+</ul>
+</li>
+<li><a href="#_summary">2.6. Summary</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="ch02">2. Cryptographic hash functions and digital signatures</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This chapter covers</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Creating a simple money system: cookie tokens</p>
+</li>
+<li>
+<p>Understanding cryptographic hash functions</p>
+</li>
+<li>
+<p>Authenticating payments using digital signatures</p>
+</li>
+<li>
+<p>Keeping your secrets secret</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I’ll start this chapter by setting the stage for the rest of this
+book.  We’ll look at a simple payment system that we can improve on
+using Bitcoin technologies. By the time we get to <a href="#ch08">[ch08]</a>, this
+simple system will have evolved into what we call Bitcoin.</p>
+</div>
+<div class="paragraph">
+<p>The second part of this chapter will teach you what you need to know
+about cryptographic hash functions. These are so important to Bitcoin
+that you really need to understand them before learning anything else.
+You’ll see how a cryptographic hash function can be used to verify
+that a file hasn’t changed since a previous point in time.</p>
+</div>
+<div class="paragraph">
+<p>The rest of the chapter will solve the problem of the <em>imposter</em>: a
+bad guy claiming to be someone else to pay money from that someone’s
+account. We solve this problem by introducing digital signatures
+(<a href="#fig0201">Figure 1</a>) into the simple system.</p>
+</div>
+<div id="fig0201" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-01.svg" alt="02 01" width="75%">
+</div>
+<div class="title">Figure 1. Digital signatures in Bitcoin</div>
+</div>
+<div class="sect2">
+<h3 id="_the_cookie_token_spreadsheet">2.1. The cookie token spreadsheet</h3>
+<div class="paragraph">
+<p>Suppose there’s a cafe in the office where you work. You and your
+coworkers use a spreadsheet to keep track of <em>cookie tokens</em>
+(<a href="#fig0202">Figure 2</a>), which use the symbol CT. You can exchange cookie tokens
+for cookies in the cafe.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Bitcoin, the currency</div>
+<div class="paragraph movingtarget">
+<p>A cookie token corresponds to a bitcoin, the currency unit of
+Bitcoin. Bitcoin got its first price point 2010 when someone bought
+two pizzas for 10,000 BTC. That money would get you 6,000,000 pizzas
+as of November 2018.</p>
+</div>
+</div>
+</div>
+<div id="fig0202" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-02.svg" alt="02 02" width="50%">
+</div>
+<div class="title">Figure 2. The cookie token spreadsheet has a column for the sender, a column for the recipient, and a column for the number of cookie tokens transferred. New cookie token transfers are appended at the end of the spreadsheet.</div>
+</div>
+<div class="paragraph">
+<p>Lisa stores this spreadsheet on her computer. It’s shared read-only
+for everybody on the office network to open and watch, except
+Lisa. Lisa is very trustworthy. Everybody trusts her. She has full
+access to do whatever she likes with the spreadsheet. You and all the
+others can only view the spreadsheet by opening it in read-only mode.</p>
+</div>
+<div class="paragraph">
+<p>Whenever Alice wants a cookie, she asks Lisa, who sits right next to
+the cafe, to transfer 10 CT from Alice to the cafe. Lisa knows who
+Alice is and can verify in the spreadsheet that she owns enough cookie
+tokens; she’ll search for “Alice” in the spreadsheet, sum all the
+amounts with Alice’s name in the To column, and subtract all the
+amounts with Alice’s name in the From column. <a href="#fig0203">Figure 3</a> shows the
+complete search result; three transfers involve Alice.</p>
+</div>
+<div id="fig0203" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-03.svg" alt="02 03" width="75%">
+</div>
+<div class="title">Figure 3. Lisa calculates Alice’s balance. The sum of her received cookie tokens is 100, and the sum of her withdrawn cookie tokens is 30. Alice’s balance is 70 CT.</div>
+</div>
+<div class="paragraph">
+<p>Lisa calculates that Alice has 70 CT, enough for Alice to pay 10 CT to
+the cafe. She <em>appends</em> a row at the end of the spreadsheet (<a href="#fig0204">Figure 4</a>).</p>
+</div>
+<div id="fig0204" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-04.svg" alt="02 04" width="50%">
+</div>
+<div class="title">Figure 4. Lisa adds Alice’s payment for a cookie. The payment is appended last in the cookie token spreadsheet.</div>
+</div>
+<div class="paragraph">
+<p>The cafe sees this new row in the spreadsheet and hands a cookie over to
+Alice.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Earn them</div>
+<div class="paragraph">
+<p>You can also get cookie tokens as part of your salary.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>When you run out of cookie tokens, you can buy tokens for dollars from
+someone who is willing to sell you some—possibly Anne or the cafe—at a
+price you both agree on. Lisa will then add a row to the spreadsheet
+accordingly.</p>
+</div>
+<div class="paragraph important">
+<p>Lisa has promised never to remove or change anything in the
+spreadsheet, just add to it. What happens in the spreadsheet, stays in
+the spreadsheet!</p>
+</div>
+<div class="paragraph">
+<p>Lisa, who is performing valuable work to secure this money system, is
+rewarded with 7,200 newly minted cookie tokens per day (<a href="#fig0205">Figure 5</a>).
+Every day, she adds a new row to the spreadsheet that creates 7,200
+new cookie tokens with Lisa as the recipient.</p>
+</div>
+<div id="fig0205" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-05.svg" alt="02 05" width="50%">
+</div>
+<div class="title">Figure 5. Lisa is rewarded with cookie tokens.</div>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Money supply curve</div>
+<div class="paragraph">
+<p>Bitcoin uses the same schedule for issuance as the cookie token
+spreadsheet. All new bitcoins are created as rewards to the nodes
+securing the Bitcoin ledger—the blockchain—just as Lisa is rewarded
+for securing the cookie token spreadsheet.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-01.svg" alt="u02 01">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>This is how all the cookie tokens in the spreadsheet are created. The
+first row in the spreadsheet is a reward row—like the one in the
+spreadsheet just shown—that creates the very first 7,200 CT ever. The
+plan is that Lisa is rewarded with 7,200 CT per day during the first
+four years, and then the reward is halved to 3,600 CT/day for the next
+four years, and so on until the reward is 0 CT/day.</p>
+</div>
+<div class="paragraph">
+<p>Don’t worry, for now, about what happens when the reward approaches
+0—that’s far in the future. We’ll discuss that in <a href="#ch07">[ch07]</a>. This reward
+halving makes the total money supply—the total number of cookie tokens
+in circulation—approach 21 million CT, but it will never exceed 21
+million.</p>
+</div>
+<div class="paragraph">
+<p>What Lisa does with the new cookie tokens she earns is up to her. She
+can buy cookies or sell the cookie tokens. She can also save them for
+later. The spreadsheet system works well, and everybody eats a healthy
+number of cookies.</p>
+</div>
+<div class="paragraph">
+<p>Lisa basically performs the same work as miners in the Bitcoin network.
+She verifies payments and updates the ledger, the cookie token
+spreadsheet. <a href="#tab0201">Table 1</a> clarifies how the concepts in the spreadsheet
+correspond to concepts in Bitcoin.</p>
+</div>
+<table id="tab0201" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 1. How key ingredients of the cookie token system and the Bitcoin system relate</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cookie tokens</th>
+<th class="tableblock halign-left valign-top">Bitcoin</th>
+<th class="tableblock halign-left valign-top">Covered in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 cookie token</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 bitcoin</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch02">Chapter 2</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The blockchain</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch06">[ch06]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A row in the spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A transaction</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch05">[ch05]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lisa</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A miner</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch07">[ch07]</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>This table will follow us throughout the book. It describes differences
+between the cookie token system and Bitcoin. I’ll delete rows from it as
+I introduce various Bitcoin stuff. For example, the row “The
+spreadsheet” will be deleted in <a href="#ch06">[ch06]</a>, when we use a blockchain to
+store transactions. I’ll also add a few rows as I introduce new concepts
+for the cookie token system that differ from those in Bitcoin.</p>
+</div>
+<div class="paragraph">
+<p>At the end of <a href="#ch08">[ch08]</a>, this table will contain only the first row,
+mapping 1 cookie token to 1 bitcoin. This will mark the end of this
+cookie token example, and from that point, we’ll talk only about Bitcoin
+itself.</p>
+</div>
+<div class="paragraph">
+<p><a href="#tab0202">Table 2</a> is your starting point for learning how Bitcoin works, which
+we can call version 1.0 of the cookie token spreadsheet system.</p>
+</div>
+<table id="tab0202" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 2. Release notes, cookie tokens 1.0</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Feature</th>
+<th class="tableblock halign-left valign-top">How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><span class="image gbnew"><img src="images/common/new.svg" alt="new"></span>1.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Simple payment system</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relies on Lisa being trustworthy and knowing everyone’s face</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Finite money supply</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7,200 new CT rewarded to Lisa daily; halves every four years</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>We’ll add a lot of fancy stuff to this system and release a new version
+in every chapter. For example, at the end of this chapter, we’ll release
+version 2.0, which uses digital signatures to solve the problem of
+imposters. Every chapter will take us closer to the end result: Bitcoin.
+But please be aware that this isn’t at all how Bitcoin evolved in
+reality—I’m just using this made-up system to help explain each
+important topic in isolation.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="cryptographic_hashing">2.2. Cryptographic hashes</h3>
+<div class="paragraph">
+<p>Cryptographic hashes are used everywhere in Bitcoin. Trying to learn
+Bitcoin without knowing what cryptographic hashes are is like trying to
+learn chemistry without knowing what an atom is.</p>
+</div>
+<div class="paragraph">
+<p>You can think of a cryptographic hash as a fingerprint. A person will
+produce the same fingerprint of her left thumb every time it’s taken,
+but it’s extremely hard to find another person with the same left thumb
+fingerprint. The fingerprint doesn’t disclose any information about the
+person other than that particular fingerprint. You can’t know what math
+skills or eye color the person has by looking at this fingerprint.</p>
+</div>
+<div class="paragraph">
+<p>Digital information also has fingerprints. This fingerprint is called a
+<em>cryptographic hash</em>. To create a cryptographic hash of a file, you
+send the file into a computer program called a <em>cryptographic hash
+function</em>. Suppose you want to create a cryptographic hash—a
+fingerprint—of your favorite cat picture. <a href="#fig0206">Figure 6</a> illustrates this
+process.</p>
+</div>
+<div id="fig0206" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-06.svg" alt="02 06" width="75%">
+</div>
+<div class="title">Figure 6. Creating a cryptographic hash of a cat picture. Input is the cat picture and output is a big number of 32 bytes.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Bits? Bytes? Hex?</div>
+<div class="paragraph">
+<p>A <em>bit</em> is the smallest unit of information in a computer. It can take
+either of two different values: 0 or 1. Like a lightbulb, it can be
+either on or off. A <em>byte</em> is 8 bits that together can take 256
+different values. We often use <em>hexadecimal</em>, or <em>hex</em>, encoding
+when we display numbers in this book. Each byte is printed as two hex
+digits each in the range 0–f, where a = 10 and f = 15.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-02.svg" alt="u02 02">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The output—the hash—is a 256-bit number; 256 bits equals 32 bytes
+because 1 byte consists of 8 bits. Thus, to store the number in a file,
+the file will be 32 bytes big, which is tiny compared to the size of the
+1.21 MB cat picture. The particular cryptographic hash function used in
+this example is called SHA256 (Secure Hash Algorithm with 256-bit
+output) and is the most commonly used one in Bitcoin.</p>
+</div>
+<div class="paragraph">
+<p>The word <em>hash</em> means something that’s chopped into small pieces or
+mixed up. That’s a good description of what a cryptographic hash
+function does. It takes the cat picture and performs a mathematical
+calculation on it. Out comes a big number—the cryptographic hash—that
+doesn’t look remotely like a cat. You can’t “reconstruct” the cat
+picture from just the hash—a cryptographic hash function is a <em>one-way
+function</em>. <a href="#fig0207">Figure 7</a> shows what happens when you change the cat
+picture a little and run it through the same cryptographic hash
+function.</p>
+</div>
+<div id="fig0207" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-07.svg" alt="02 07" width="75%">
+</div>
+<div class="title">Figure 7. Hashing a modified cat picture. Can you spot the difference? The cryptographic hash function certainly did.</div>
+</div>
+<div class="paragraph">
+<p>This hash turns out completely different than the first hash. Let’s
+compare them:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Old hash: dee6a5d375827436ee4b47a930160457901dce84ff0fac58bf79ab0edb479561
+New hash: d2ca4f53c825730186db9ea585075f96cd6df1bfd4fb7c687a23b912b2b39bf6</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>See how that tiny change to the cat picture made a huge difference in
+the hash value? The hash value is completely different, but the length
+of the hash is always the same regardless of input. The input “Hello”
+will also result in a 256-bit hash value.</p>
+</div>
+<div class="sect3">
+<h4 id="_why_are_cryptographic_hash_functions_useful">2.2.1. Why are cryptographic hash functions useful?</h4>
+<div class="paragraph">
+<p>Cryptographic hash functions can be used as an integrity check to detect
+changes in data. Suppose you want to store your favorite cat picture on
+your laptop’s hard drive, but you suspect the stored picture might
+become corrupted. This could happen, for example, due to disk errors or
+hackers. How can you make sure you detect corruption?</p>
+</div>
+<div class="paragraph">
+<p>First, you calculate a cryptographic hash of the cat picture on your
+hard drive and write it down on a piece of paper (<a href="#fig0208">Figure 8</a>).</p>
+</div>
+<div id="fig0208" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-08.svg" alt="02 08" width="75%">
+</div>
+<div class="title">Figure 8. Save a hash of the cat picture on a piece of paper</div>
+</div>
+<div class="paragraph">
+<p>Later, when you want to look at the picture, you can check if it’s
+changed since you wrote the hash on that paper. Calculate the
+cryptographic hash of the cat picture again, and compare it to the
+original hash on your paper (<a href="#fig0209">Figure 9</a>).</p>
+</div>
+<div id="fig0209" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-09.svg" alt="02 09" width="100%">
+</div>
+<div class="title">Figure 9. Check the integrity of the cat picture. You detect a change.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">How sure?</div>
+<div class="paragraph">
+<p>There’s a tiny chance the cat picture has changed even though the
+hashes match. But as you’ll see later, that chance is so small, you
+can ignore it.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If the new hash matches the one on paper, you can be sure the picture
+hasn’t changed. On the other hand, if the hashes don’t match, the cat
+picture has definitely changed.</p>
+</div>
+<div class="paragraph">
+<p>Bitcoin uses cryptographic hash functions a lot to verify that data
+hasn’t changed. For example, every now and then—on average, every 10
+minutes—a new hash of the entire payment history is created. If someone
+tries to change the data, anyone verifying the hash of the modified data
+will notice.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="how-does-a-cryptographic-hash-function-work">2.2.2. How does a cryptographic hash function work?</h4>
+<div class="paragraph">
+<p>The real answer is complex, so I won’t go into exact detail. But to
+help you understand the operation of a cryptographic hash function,
+we’ll create a very simplistic one. Well, it isn’t really
+cryptographic, as I’ll explain later. Let’s just call it a hash
+function for now.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Modulo</div>
+<div class="paragraph">
+<p><em>Modulo</em> means to wrap around when a calculation reaches a certain
+value. For example:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>0   mod 256 = 0
+255 mod 256 = 255
+256 mod 256 = 0
+257 mod 256 = 1
+258 mod 256 = 2</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>258 mod 256 is the remainder of the integer division 258/256: 258 = 1
+× 256 + 2. The remainder is 2.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Suppose you want to hash a file containing the six bytes <code>a1 02 12 6b
+c6 7d</code>. You want the hash to be a 1-byte number (8 bits). You can
+construct a hash function using <em>addition modulo 256</em>, which means
+to wrap around to 0 when the result of an addition reaches 256
+(<a href="#fig0210">Figure 10</a>).</p>
+</div>
+<div id="fig0210" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-10.svg" alt="02 10" width="75%">
+</div>
+<div class="title">Figure 10. Simplistic hash function using byte-wise addition modulo 256</div>
+</div>
+<div class="paragraph">
+<p>The result is the decimal number 99. What does 99 say about the original
+input <code>a1 02 12 6b c6 7d</code>? Not much—99 looks just as random as any other
+single-byte number.</p>
+</div>
+<div class="paragraph">
+<p>If you change the input, the hash will change, although a chance exists
+that the hash will remain 99. After all, this simple hash function has
+just 256 different possible outputs. With real cryptographic hash
+functions, like the one we used to hash the cat picture, this chance is
+unimaginably small. You’ll soon get a glimpse of this probability.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_properties_of_a_cryptographic_hash_function">2.2.3. Properties of a cryptographic hash function</h4>
+<div class="paragraph">
+<p>A cryptographic hash function takes any digital input data, called a
+<em>pre-image</em>, and produces a fixed-length output, called a <em>hash</em>. In
+the example with the cat picture on your hard drive, the pre-image is
+the cat picture of 1.21 MB, and the hash is a 256-bit number. The
+function will output the exact same hash each time the same pre-image is
+used. But it will, with extremely high probability, output a totally
+different hash when even the slightest variation of that pre-image is
+used. The hash is also commonly referred to as a <em>digest</em>.</p>
+</div>
+<div class="paragraph">
+<p>Let’s look at what properties you can expect from a cryptographic hash
+function. I’ll illustrate using SHA256 because it’s the one Bitcoin uses
+most. Several cryptographic hash functions are available, but they all
+provide the same basic properties:</p>
+</div>
+<div class="olist arabic important">
+<ol class="arabic">
+<li>
+<p>The same input will always produce the same hash.</p>
+</li>
+<li>
+<p>Slightly different inputs will produce very different hashes.</p>
+</li>
+<li>
+<p>The hash is always of the same fixed size. For SHA256, it’s 256 bits.</p>
+</li>
+<li>
+<p>Brute-force trial and error is the only known way to find an input
+that gives a certain hash.</p>
+</li>
+</ol>
+</div>
+<div id="fig0211" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-11.svg" alt="02 11" width="75%">
+</div>
+<div class="title">Figure 11. A cryptographic hash function, SHA256, in action. The input “Hello!” will give you the same output every time, but the slightly modified input “Hello” will give you totally different output.</div>
+</div>
+<div class="paragraph">
+<p><a href="#fig0211">Figure 11</a> illustrates the first three properties. The fourth property
+of a cryptographic hash function is what makes it a <em>cryptographic</em> hash
+function, and this needs a bit more elaboration. There are some
+variations to the fourth property, all of which are desirable for
+cryptographic hash functions (<a href="#fig0212">Figure 12</a>):</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Collision resistance</dt>
+<dd>
+<p>You have only the cryptographic hash function
+at hand. It’s hard to find two <em>different</em> inputs that <em>result in the
+same hash</em>.</p>
+</dd>
+<dt class="hdlist1">Pre-image resistance</dt>
+<dd>
+<p>You have the hash function and a hash. It’s
+hard to find <em>a pre-image of that hash</em>.</p>
+</dd>
+<dt class="hdlist1">Second-pre-image resistance</dt>
+<dd>
+<p>You have the hash function and a
+pre-image (and thus the hash of that pre-image). It’s hard to find
+<em>another pre-image with the same hash</em>.</p>
+</dd>
+</dl>
+</div>
+<div id="fig0212" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-12.svg" alt="02 12" width="75%">
+</div>
+<div class="title">Figure 12. Different desirable properties for cryptographic hash functions. For collision resistance, X can be anything, as long as the two <em>different</em> inputs give the same output X.</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_illustration_of_hard">2.2.4. Illustration of “hard”</h4>
+<div class="paragraph">
+<p>The term <em>hard</em> in this context means astronomically hard. It’s silly to
+even try. We’ll look at second-pre-image resistance as an example of
+what <em>hard</em> means, but a similar example can be made for any of the
+three variants.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-03.svg" alt="u02 03">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Suppose you want to find an input to SHA256 that results in the same hash
+as “Hello!”:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can’t change the input “Hello!” just a little so the function “won’t
+notice.” It <em>will</em> notice and will output a totally different hash. The
+only way to find an input other than “Hello!” that gives the hash
+<code>334d016f&#8230;&#8203;d42c87b7</code> is to try different inputs one by one and check
+whether one produces the desired hash.</p>
+</div>
+<div class="paragraph">
+<p>Let’s try, using <a href="#tab0203">Table 3</a>.</p>
+</div>
+<table id="tab0203" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Finding an input with the same hash as “Hello!” is nearly impossible.</caption>
+<colgroup>
+<col style="width: 22.2222%;">
+<col style="width: 44.4444%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Input</th>
+<th class="tableblock halign-left valign-top">Hash</th>
+<th class="tableblock halign-left valign-top">Success?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> Hello1!</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> 82642dd9...2e366e64</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> Hello2!</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> 493cb8b9...83ba14f8</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> Hello3!</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> 90488e86...64530bae</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> ...</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> ...</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope, nope, …, nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> Hello9998!</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> cf0bc6de...e6b0caa4</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> Hello9999!</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> df82680f...ef9bc235</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> Hello10000!</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> 466a7662...ce77859c</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><span class="image"><img src="images/common/cat.svg" alt="cat" width="40%"></span></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> dee6a5d3...db479561</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> My entire music collection</pre></div></td>
+<td class="tableblock halign-left valign-top"><div class="literal"><pre> a5bcb2d9...9c143f7a</pre></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nope</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">How big is 2<sup>256</sup>?</div>
+<div class="paragraph">
+<p>2<sup>256</sup> is about 10<sup>77</sup>, which is almost the number of atoms in the
+universe. Finding a pre-image of a SHA256 hash is like picking an atom
+in the universe and hoping it’s the correct one.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>As you can see, we aren’t very successful. Think about how much time
+it would take for a typical desktop computer to find such an input. It
+can calculate about 60 million hashes per second, and the expected
+number of tries needed to find a solution is 2<sup>255</sup>. The result is
+2<sup>255</sup> / (60 × 10<sup>6</sup>) s ≈ 10<sup>68</sup> s ≈ 3 × 10<sup>61</sup> years, or about
+30,000,000,000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000,&#8203;000
+years.</p>
+</div>
+<div class="paragraph">
+<p>I think we can stop trying, don’t you? I don’t think buying a faster
+computer will help, either. Even if we had 1 trillion computers and
+ran them concurrently, it would take about 3 × 10<sup>49</sup> years.</p>
+</div>
+<div class="paragraph">
+<p>Pre-image resistance, second-pre-image resistance, and collision
+resistance are extremely important in Bitcoin. Most of its security
+relies on these properties.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_some_well_known_hash_functions">2.2.5. Some well-known hash functions</h4>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Double SHA256</div>
+<div class="paragraph">
+<p>We most often use double SHA256 in Bitcoin:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-04.svg" alt="u02 04">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p><a href="#tab0204">Table 4</a> shows several different cryptographic hash functions. Some
+aren’t considered cryptographically secure.</p>
+</div>
+<table id="tab0204" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 4. A few cryptographic hash functions. Some old ones have been deemed insecure.</caption>
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Bits</th>
+<th class="tableblock halign-left valign-top">Secure so far?</th>
+<th class="tableblock halign-left valign-top">Used in Bitcoin?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SHA256</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">256</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SHA512</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">512</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes, in some wallets</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RIPEMD160</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">160</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SHA-1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">160</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No. A collision has been found.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MD5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">128</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No. Collisions can be trivially created. The algorithm is also
+vulnerable to pre-image attacks, but not trivially.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Generally, when a single collision has been found in a cryptographic
+hash function, most cryptographers will consider the function
+insecure.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_recap_of_cryptographic_hashes">2.2.6. Recap of cryptographic hashes</h4>
+<div class="paragraph">
+<p>A cryptographic hash function is a computer program that takes any data
+as input and computes a big number—a cryptographic hash—based on that
+input.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-06.svg" alt="u02 06" width="75%">
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-05.svg" alt="u02 05">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>It’s astronomically hard to find an input that will result in a specific
+output. This is why we call it a <em>one-way function</em>. You have to
+repeatedly guess different inputs.</p>
+</div>
+<div class="paragraph">
+<p>We’ll discuss important topics throughout this book. When you’ve learned
+about a specific topic, like cryptographic hash functions, you can put a
+new tool into your toolbox for later use. Your first tool is the
+cryptographic hash function, which is represented here by a paper
+shredder; the cryptographic hash is represented by a pile of paper
+strips.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-07.svg" alt="u02 07">
+</div>
+</div>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-08.svg" alt="u02 08" width="50%">
+</div>
+</div>
+<div class="paragraph">
+<p>From now on, we’ll use these tool icons to represent cryptographic
+hash functions and cryptographic hashes, with some exceptions.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_exercises">2.2.7. Exercises</h4>
+<div class="sect4">
+<h5 id="_warm_up">Warm up</h5>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>How many bits is the output of SHA256?</p>
+</li>
+<li>
+<p>How many bytes is the output of SHA256?</p>
+</li>
+<li>
+<p>What’s needed to calculate the cryptographic hash of the text
+“hash me”?</p>
+</li>
+<li>
+<p>What are the decimal and the binary representations of the
+hexadecimal data <code>061a</code>?</p>
+</li>
+<li>
+<p>Can you, in practice, modify the text “cat” so the modified text
+gets the same cryptographic hash as “cat”?</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_dig_in">Dig in</h5>
+<div class="olist arabic">
+<ol class="arabic" start="6">
+<li>
+<p>The simplistic hash function from
+<a href="#how-does-a-cryptographic-hash-function-work">Section 2.2.2</a>, repeated for you as
+follows, isn’t a <em>cryptographic</em> hash function. Which two of the four
+properties of a cryptographic hash function is it lacking?</p>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-09.svg" alt="u02 09" width="50%">
+</div>
+</div>
+<div class="paragraph">
+<p>The four properties are also repeated as follows:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The same input will always produce the same hash.</p>
+</li>
+<li>
+<p>Slightly different inputs will produce very different hashes.</p>
+</li>
+<li>
+<p>The hash is always of the same fixed size. For SHA256, it’s 256 bits.</p>
+</li>
+<li>
+<p>Brute-force trial and error is the only known way to find an input that
+gives a certain hash.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Let’s go back to the example where you had a cat picture on your
+hard drive and wrote down the cryptographic hash of the picture on a
+piece of paper. Suppose someone wanted to change the cat picture on your
+hard drive without you noticing. What variant of the fourth property is
+important for stopping the attacker from succeeding?</p>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-10.svg" alt="u02 10" width="75%">
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_digital_signatures">2.3. Digital signatures</h3>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-11.svg" alt="u02 11">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>In this section, we explore how you can prove to someone that you
+approve a payment. To do that, we use <em>digital signatures</em>. A digital
+signature is a digital equivalent of a handwritten signature. The
+difference is that a handwritten signature is tied to a person, whereas
+a digital signature is tied to a random number called a <em>private key</em>.
+A digital signature is much harder to forge than a handwritten
+signature.</p>
+</div>
+<div class="sect3">
+<h4 id="_typical_use_of_digital_signatures">2.3.1. Typical use of digital signatures</h4>
+<div class="paragraph">
+<p>Suppose you want to send your favorite cat picture to your friend Fred
+via email, but you suspect the picture might be, maliciously or
+accidentally, corrupted during transfer. How would you and Fred make
+sure the picture Fred receives is exactly the same as the one you
+send?</p>
+</div>
+<div id="signing-overview" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-13.svg" alt="02 13" width="100%">
+</div>
+<div class="title">Figure 13. You send a digitally signed cat picture to Fred. Fred verifies the signature to make sure he’s got the same cat as the cat you signed.</div>
+</div>
+<div class="paragraph">
+<p>You can include a digital signature of the cat picture in the email.
+Fred can then verify this digital signature to make sure the cat
+picture is authentic. You do this in three different phases, as
+<a href="#signing-overview">Figure 13</a> shows.</p>
+</div>
+<div class="paragraph">
+<p>Step 1 is <em>preparation</em>. You create a huge random number: the private
+key. You can use this to create digital signatures. You then create the
+<em>public key</em>, which is used to verify the signatures the private key
+creates. The public key is <em>calculated</em> from the private key. You hand
+the public key to Fred in person so Fred is sure it belongs to you.</p>
+</div>
+<div class="paragraph">
+<p>Step 2 is <em>signing</em>. You write an email to Fred and attach the cat
+picture. You also use your private key and the cat picture to digitally
+sign the cat picture. The result is a digital signature that you include
+in your email message. You then send the email to Fred.</p>
+</div>
+<div class="paragraph">
+<p>Step 3 is <em>verifying</em>. Fred receives your email, but he’s concerned
+the cat picture might be corrupt, so he wants to verify the signature.
+He uses the public key he got from you in step 1, the digital signature
+in the email, and the attached cat picture. If the signature or the cat
+picture has changed since you created the signature, the verification
+will fail.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="improving-cookie-token-security">2.3.2. Improving cookie token security</h4>
+<div class="paragraph">
+<p>It’s time to return to our cookie token spreadsheet. The company is
+growing, and Lisa has a hard time recognizing everyone. She notices that
+some people aren’t honest. For example, Mallory says she is Anne, to
+trick Lisa into moving cookie tokens from Anne to the cafe, instead of
+from Mallory to the cafe. Lisa thinks of requiring everybody to
+digitally sign their cookie token transfers by writing a message and a
+digital signature in an email, as <a href="#fig0214">Figure 14</a> shows.</p>
+</div>
+<div id="fig0214" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-14.svg" alt="02 14" width="50%">
+</div>
+<div class="title">Figure 14. John needs to digitally sign his payment request and include the signature in the email.</div>
+</div>
+<div class="paragraph">
+<p>Suppose John is the new guy at the office. The company gave him some
+cookie tokens as a welcome gift when he started. Now, John wants to buy
+a cookie in the cafe for 10 CT. He needs to digitally sign a cookie
+token transfer. <a href="#generate-key-pair">Figure 15</a> shows what he has to do.</p>
+</div>
+<div id="generate-key-pair" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-15.svg" alt="02 15" width="100%">
+</div>
+<div class="title">Figure 15. The digital signature process. 1. John creates a key pair and gives the public key to Lisa. 2. John signs a message with the private key. 3. Lisa verifies the message is signed with the private key belonging to the public key she got from John.</div>
+</div>
+<div class="paragraph">
+<p>Just as with the email to Fred in the previous section, there are three
+phases in this process (please compare with the steps in <a href="#signing-overview">Figure 13</a> to
+see the similarities):</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Key pair reuse</div>
+<div class="paragraph">
+<p>A key pair is created once. The same private key can be used several
+times to digitally sign stuff.</p>
+</div>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>John prepares by generating a key pair. John keeps the private key
+secret and hands the public key over to Lisa. This is a one-time setup
+step.</p>
+</li>
+<li>
+<p>John wants a cookie. He writes a message and signs it with his
+private key. He sends the message and the digital signature in an
+email to Lisa.</p>
+</li>
+<li>
+<p>Lisa verifies the signature of the message using John’s public key
+and updates the spreadsheet.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_preparation_john_generates_a_key_pair">2.3.3. Preparation: John generates a key pair</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-12.svg" alt="u02 12">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The signing and verification processes are based on a key pair. John
+needs a private key to sign payments, and Lisa will need John’s public
+key to verify John’s signatures. John needs to prepare for this by
+creating a key pair. He does this by first generating a private key and
+then calculating the public key from that private key, as <a href="#fig0216">Figure 16</a>
+shows.</p>
+</div>
+<div id="fig0216" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-16.svg" alt="02 16" width="100%">
+</div>
+<div class="title">Figure 16. John creates a key pair. The private key is a huge random number, and the public key is derived from that random number. John stores his private key on his hard drive, and the public key is handed to Lisa.</div>
+</div>
+<div class="paragraph">
+<p>John will use a random number generator to generate a huge, 256-bit
+random number. A random number generator is available on almost all
+operating systems. The random number is now John’s private key. The
+private key is then transformed into a public key using a public-key
+derivation function.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="paragraph">
+<p><span class="image"><img src="images/ch02/u02-13.svg" alt="u02 13"></span></p>
+</div>
+</div>
+</div>
+<div class="paragraph important">
+<p>Public-key derivation is a one-way function, just like cryptographic
+hash functions; you can’t derive the private key from the public key.
+The security of digital signatures relies heavily on this feature. Also,
+running the private key through the public-key derivation function
+multiple times will always result in the same public key.</p>
+</div>
+<div class="paragraph">
+<p>The public key is 33 bytes (66 hex digits) long. This is longer than
+the private key, which is 32 bytes (64 hex digits) long. The reason
+for the “extra” byte and how the public-key derivation function works
+is a hard topic, covered in <a href="#ch04">[ch04]</a>. Luckily, you don’t have to be a
+cryptography expert to understand how signatures work from a user’s
+perspective.</p>
+</div>
+<div class="sect4">
+<h5 id="_two_ways_to_use_the_key_pair">Two ways to use the key pair</h5>
+<div class="paragraph">
+<p>Keys are used to encrypt and decrypt data. Encryption is used to make
+messages unreadable to everybody but those who hold the proper
+decryption key.</p>
+</div>
+<div class="paragraph">
+<p>We can think of the private and public keys as a pair because they have
+a strong relationship: the public key can be used to encrypt messages
+that only the private key can decrypt, and the private key can encrypt
+messages that only the public key can decrypt (<a href="#enc-dec-public-private">Figure 17</a>).</p>
+</div>
+<div id="enc-dec-public-private" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-17.svg" alt="02 17" width="75%">
+</div>
+<div class="title">Figure 17. Encrypting and decrypting with the public and private keys. Left: Encrypt with the public key, and decrypt with the private key. Right: Encrypt with the private key, and decrypt with the public key.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="paragraph">
+<p>We’ll use the right side of <a href="#enc-dec-public-private">Figure 17</a> to make digital
+signatures. We won’t use the left side at all in this book.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Following the left side of <a href="#enc-dec-public-private">Figure 17</a>, only John would
+be able to read the encrypted message because he’s the only one with
+access to his private key. Bitcoin doesn’t use this feature of public
+and private keys at all. It’s used when two parties want to
+communicate in private, as when you do your online banking. When you
+see the little padlock in the address bar of your web browser, then
+you know the process shown on the left side of the figure is being
+used to secure your communication.</p>
+</div>
+<div class="paragraph">
+<p>Following the right side of the figure, Lisa can decrypt the message
+because she has the public key belonging to John’s private key. This
+feature is used for digital signatures. Using the private key to
+encrypt secret messages isn’t a good idea because the public key is,
+well, public. Anyone with the public key can decrypt the
+message. Digital signatures, on the other hand, don’t need any secret
+messages. We’ll explore digital signatures deeper soon. But first,
+some recap and orientation.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_recap_of_key_pairs">2.3.4. Recap of key pairs</h4>
+<div class="paragraph">
+<p>Let’s summarize what you’ve learned about public and private keys. You
+create a key pair by first creating a private key. The private key is
+a huge, secret random number. The public key is then calculated from
+the private key.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-14.svg" alt="u02 14" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>You can use the private key to encrypt a message that can be decrypted
+only using the public key.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-15.svg" alt="u02 15" width="50%">
+</div>
+</div>
+<div class="paragraph">
+<p>The encryption and decryption in this figure are the foundation for
+digital signatures. This process is <em>not</em> suitable for sending secret
+messages because the public key is usually widely known.</p>
+</div>
+<div class="paragraph">
+<p>The reverse process is also common, in which the public key is used to
+encrypt and the private key is used to decrypt. This process is used
+to send secret messages. Bitcoin doesn’t use it.</p>
+</div>
+</div>
+<div class="sect3 periscope">
+<h4 id="_where_were_we">2.3.5. Where were we?</h4>
+<div class="paragraph">
+<p>Digital signatures were briefly mentioned in <a href="#ch01">[ch01]</a>, where Alice
+signed her Bitcoin transaction of 1 BTC to Bob using her private key
+(<a href="#fig0218">Figure 18</a>).</p>
+</div>
+<div id="fig0218" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-18.svg" alt="02 18" width="50%">
+</div>
+<div class="title">Figure 18. Digital signatures in Bitcoin</div>
+</div>
+<div class="paragraph">
+<p>John has created a pair of keys and is about to digitally sign his
+payment to the cafe with his private key so Lisa can verify that it’s
+actually John making the payment. Lisa verifies this using John’s
+public
+key.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_john_signs_his_payment">2.3.6. John signs his payment</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-17.svg" alt="u02 17">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let’s have a close look at how the signing really happens (<a href="#fig0219">Figure 19</a>).</p>
+</div>
+<div class="paragraph">
+<p>The message John wants to sign is, “Lisa, please move 10CT to Cafe.
+/John”. The signing function will hash this message with SHA256, whose
+output is a 256-bit number. This hash value is then encrypted with
+John’s private key. The result is a digital signature that looks like
+this:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>INxAs7oFDr80ywy4bt5uYPIv/09fJMW+04U3sJUfgV39
+A2k8BKzoFRHBXm8AJeQwnroNb7qagg9QMj7Vp2wcl+c=</pre>
+</div>
+</div>
+<div id="fig0219" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-19.svg" alt="02 19" width="75%">
+</div>
+<div class="title">Figure 19. John digitally signs the transfer of 10 CT to the cafe. The message to Lisa is first hashed and then encrypted with John’s private key. The email to Lisa contains both the message in cleartext and the signature.</div>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Signatures in Bitcoin</div>
+<div class="paragraph">
+<p>Bitcoin uses this type of signature for most payments today, but it
+isn’t the only way to authenticate a payment.</p>
+</div>
+</div>
+</div>
+<div class="paragraph important">
+<p>The signature is an encrypted hash of a message. If John had used
+another private key to sign with or a slightly different message, the
+signature would have looked completely different.</p>
+</div>
+<div class="paragraph">
+<p>For example, using the input message “Lisa, please move 10CT to
+Mallory.  /John” would generate this signature:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>ILDtL+AVMmOrcrvCRwnsJUJUtzedNkSoLb7OLRoH2iaD
+G1f2WX1dAOTYkszR1z0TfTVIVwdAlD0W7B2hBTAzFkk=</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This isn’t remotely similar to the previous signature. This is good
+for John, because he knows his signature can’t be used for messages
+other than his specific message.</p>
+</div>
+<div class="paragraph">
+<p>John has now composed an email to Lisa. This email contains a message
+and a signature of that message. John finishes by sending the email to
+Lisa.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_lisa_verifies_the_signature">2.3.7. Lisa verifies the signature</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-18.svg" alt="u02 18">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Lisa looks at the email and sees it claims to be from John, so she
+looks up John in her table of public keys (<a href="#fig0220">Figure 20</a>).</p>
+</div>
+<div id="fig0220" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-20.svg" alt="02 20" width="75%">
+</div>
+<div class="title">Figure 20. Lisa uses the message (A), the signature (B), and John’s public key (C) to verify that the message is signed with John’s private key.</div>
+</div>
+<div class="paragraph">
+<p>Lisa’s actions in this figure aim to determine that the cookie token
+transfer was signed by the private key it claims to be signed with. The
+message <em>says</em> it’s from John. She received John’s public key the other
+day and put that public key in her table of public keys. The things she
+has at hand are</p>
+</div>
+<div class="olist upperalpha">
+<ol class="upperalpha">
+<li>
+<p>The message “Lisa, please move 10CT to Cafe. /John”</p>
+</li>
+<li>
+<p>The signature <code>INxAs7oFDr8…</code></p>
+</li>
+<li>
+<p>John’s public key that she just looked up in her table</p>
+</li>
+</ol>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">A signature is an encrypted hash</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-19.svg" alt="u02 19">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph important">
+<p>John encrypted the message’s hash with his <em>private</em> key. This
+encrypted hash is the signature. If Lisa decrypts the signature (B) with
+John’s <em>public</em> key (C), the result should be a hash that equals the
+hash of the message (A) in the email.</p>
+</div>
+<div class="paragraph">
+<p>Lisa takes the signature (B) and decrypts it with the public key (C)
+she looked up in her table of public keys. The decryption outputs a
+big number. If this number is equal to the hash of the message (A), it
+proves John’s private key was used to sign the message. Lisa takes the
+message (A), exactly as written, and hashes that message just like John
+did when he created the signature. This message hash is then compared
+with the decrypted signature. The message hash and the decrypted
+signature match, which means the signature is valid.</p>
+</div>
+<div class="paragraph">
+<p>Note that this process works only if John and Lisa use the exact same
+digital signature scheme. This must be agreed on beforehand, but it’s
+usually standardized. In Bitcoin, everyone knows exactly what digital
+signature scheme to use.</p>
+</div>
+<div class="paragraph">
+<p>Lisa can now be sure no one is trying to fool her. She updates the
+spreadsheet with John’s transfer, as shown in <a href="#fig0221">Figure 21</a>.</p>
+</div>
+<div id="fig0221" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-21.svg" alt="02 21" width="75%">
+</div>
+<div class="title">Figure 21. Lisa has added a row for John’s cookie token transfer after verifying the signature of John’s message.</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_private_key_security">2.3.8. Private key security</h4>
+<div class="paragraph">
+<p>John is in control of his cookie tokens because he owns the private key.
+No one but John can use John’s cookie tokens because he’s the only one
+with access to his private key. If his private key is stolen, he can
+lose any and all of his cookie tokens.</p>
+</div>
+<div class="paragraph">
+<p>The morning after John’s transfer, he comes to the office, takes his
+laptop from his desk, and goes straight to the cafe to buy two morning
+cookies. He opens his laptop to write an email to Lisa:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Good morning Lisa! Please move 20 CT to Cafe. /John
+Signature:
+H1CdE34cRuJDsHo5VnpvKqllC5JrMJ1jWcUjL2VjPbsj
+X6pi/up07q/gWxStb1biGU2fjcKpT4DIxlNd2da9x0o=</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>He sends this email containing the message and a signature to Lisa. But
+the cafe doesn’t hand him any cookies. The guy behind the desk says he
+hasn’t seen an incoming payment of 20 CT yet. Lisa usually verifies and
+executes transfers quickly.</p>
+</div>
+<div class="paragraph">
+<p>John opens the spreadsheet—he has read-only access, remember—and
+searches for “John.” <a href="#fig0222">Figure 22</a> shows what he sees.</p>
+</div>
+<div id="fig0222" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-22.svg" alt="02 22" width="75%">
+</div>
+<div class="title">Figure 22. Someone stole money from John. Who is Melissa, and how was this possible? John didn’t sign any such transfer.</div>
+</div>
+<div class="paragraph">
+<p>John steps into Lisa’s office, asking for an explanation. She answers
+that she got a message signed with John’s private key, asking her to
+send money to a new coworker, Melissa. Lisa even shows him the message
+and signature. Of course, there is no Melissa at the office, even though
+several new employees have started at the company. Lisa doesn’t care
+about names anymore, only public keys and signatures. But she needs the
+name to look up the correct public key in the table.</p>
+</div>
+<div class="paragraph">
+<p>The explanation to all this is that Mallory has</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Managed to copy John’s private key. John’s laptop has been on his desk
+all night long. Anyone could have taken the hard drive out of the laptop
+to search for his private key.</p>
+</li>
+<li>
+<p>Created a new key pair and sent the new public key to Lisa, with the
+following message:</p>
+<div class="literalblock">
+<div class="content">
+<pre>Hi Lisa. My name is Melissa, and I’m new here.
+My public key is
+02c5d2dd24ad71f89bfd99b9c2132f796fa746596a06f5a33c53c9d762e37d9008</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Sent a fraudulent message, signed with the stolen private key, to Lisa
+as follows:</p>
+<div class="literalblock">
+<div class="content">
+<pre>Hi Lisa, please move 90 CT to Melissa. Thanks, John
+Signature:
+IPSq8z0IyCVZNZNMIgrOz5CNRRtRO+A8Tc3j9og4pWbA
+H/zT22dQEhSaFSwOXNp0lOyE34d1+4e30R86qzEbJIw=</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Lisa verified the transfer in step 3, concluded it was valid, and
+executed the transfer. John asks Lisa to revert the—according to
+him—fraudulent transfer. But Lisa refuses to do so. She thinks the
+transfer is perfectly valid. If John let someone see his private key,
+that’s his problem, not Lisa’s. That’s part of why she’s so trusted in
+the company—she keeps her promises.</p>
+</div>
+<div class="paragraph">
+<p>John creates a new key pair and asks Lisa to add his new public key
+under the name John2. How can John secure his new private key and still
+have it readily available when he wants a cookie? John is pretty sure he
+won’t have more than 1,000 cookie tokens on that key.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">You are responsible</div>
+<div class="paragraph">
+<p>You have full responsibility for the security of your private keys.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The security of the spreadsheet has shifted from a system in which Lisa
+knows everyone’s face to one in which she knows everyone’s public key.
+In a sense, the security could be worse now, because it might be easier
+for Mallory to steal John’s private key than it is for her to trick Lisa
+into thinking Mallory is John. This depends on how John protects his
+private key. An important thing to note is that the security of John’s
+private key is totally up to him. No one will be able to restore John’s
+private key if he loses it. And Lisa sure isn’t going to reverse
+“fraudulent” transfers just because John is sloppy with security.</p>
+</div>
+<div class="paragraph">
+<p>If John stores his private key in cleartext in a shared folder on the
+company’s intranet, anyone can easily copy it and use it to steal his
+cookie tokens. But if John stores the private key in an encrypted file,
+protected by a strong password, on his own laptop’s hard drive, getting
+a copy of his key is a lot harder. An attacker would have to</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Get access to John’s hard drive</p>
+</li>
+<li>
+<p>Know John’s password</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>If John never has more than 50 CT on his private key, he might not be
+that concerned with security. But the cafe, which manages about 10,000
+CT daily, might be concerned. John and the cafe probably need different
+strategies for storing their private keys.</p>
+</div>
+<div class="paragraph">
+<p>A trade-off exists between security and convenience. You can, for
+example, keep your private key encrypted on an offline laptop in a bank
+safe-deposit box. When you want to buy a cookie, you’ll need to go to
+the bank, take the laptop out of your safe-deposit box, decrypt the
+private key with your password, and use it to digitally sign a message
+to Lisa that you save to a USB stick. Then, you’ll have to put the
+laptop back into the safe-deposit box, bring the USB stick back to the
+office, and send the email to Lisa. The private key never leaves<br>
+the laptop in the safe-deposit box. Very secure, and very inconvenient.</p>
+</div>
+<div class="paragraph">
+<p>On the other hand, you can store your private key in cleartext on your
+mobile phone. You’ll have the key at your fingertips and can sign a
+message within seconds of when the urge for a cookie starts to nudge
+you. Very insecure, and very convenient.</p>
+</div>
+<div id="fig0223" class="imageblock">
+<div class="content">
+<img src="images/ch02/02-23.svg" alt="02 23" width="50%">
+</div>
+<div class="title">Figure 23. Security considerations against attackers. Note how the more secure options are also more inconvenient.</div>
+</div>
+<div class="paragraph">
+<p>Some of the different trade-offs, as illustrated in <a href="#fig0223">Figure 23</a>, are
+as follows:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Online vs. offline</dt>
+<dd>
+<p>Online means the private key is stored on a
+device with network access, like your mobile phone or general-purpose
+laptop. Offline means the private key is stored on a piece of paper or
+a computer without any network access. Online storage is risky because
+remote security exploits or malicious software on your computer, such
+as computer viruses, might send the private key to someone without you
+noticing. If the device is offline, no one can take the private key
+without physical access to the device.</p>
+</dd>
+<dt class="hdlist1">Cleartext vs. encrypted</dt>
+<dd>
+<p>If the private key is stored in cleartext in
+a file on your computer’s hard drive, anyone with access to your
+computer, either remotely over a computer network or physically, can
+copy the private key. This includes any viruses your computer might be
+victim to. You can avoid many of these attacks by encrypting your
+private key with a password that only you know. An attacker would then
+need access to both your hard drive and your secret password to get
+the private key.</p>
+</dd>
+<dt class="hdlist1">Whole key vs. split key</dt>
+<dd>
+<p>People usually store their entire private
+key on a single computer. This is convenient—you need only one
+computer to spend your cookie tokens. An attacker must get access to
+your hard drive to steal the private key. But if your private key is
+split into three parts (there are good and bad schemes for this—be
+careful), and you store the three parts separately on three different
+computers, then the attacker must get access to the hard drives of
+three computers. This is much harder because they must know what three
+computers to attack and also successfully attack them. Making a
+payment in this setup is a real hassle, but very secure.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>You can use any combination of these methods to store your keys. But
+as a rule of thumb, the greater the security against attackers, the
+greater the risk of you accidentally losing access to your key. For
+example, if you store the private key encrypted on your hard drive,
+you risk losing your key due to both computer failure and forgetting
+your password. In this sense, the more securely you store your key,
+the less secure it is.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_recap">2.4. Recap</h3>
+<div class="paragraph">
+<p>Lisa has solved the problem with people claiming to be someone else when
+they make a payment. She requires all payers to digitally sign the
+cookie token transfers. Every spreadsheet user needs a private key and a
+public key. Lisa keeps track of who owns which public key. From now on,
+a payment must be written in an email to Lisa, and the message must be
+digitally signed with the person’s private key. Lisa can then verify the
+signature to make sure she isn’t being fooled. The gist is that as long
+as John keeps his private key to himself, no one will be able to spend
+his money.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-20.svg" alt="u02 20" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>We need to add “Email to Lisa” to our concept table (<a href="#tab0205">Table 5</a>).</p>
+</div>
+<table id="tab0205" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 5. Adding “Email to Lisa” as a key concept</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cookie Tokens</th>
+<th class="tableblock halign-left valign-top">Bitcoin</th>
+<th class="tableblock halign-left valign-top">Covered in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 cookie token</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 bitcoin</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch02">Chapter 2</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The blockchain</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch06">[ch06]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Email to Lisa</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>A transaction</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><a href="#ch05">[ch05]</a></strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A row in the spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A transaction</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch05">[ch05]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lisa</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A miner</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch07">[ch07]</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The email to Lisa will be replaced by transactions in <a href="#ch05">[ch05]</a>.
+Transactions will replace both the email to Lisa and the row in the
+spreadsheet. It’s time to release version 2.0 of the cookie token
+spreadsheet system (<a href="#tab0206">Table 6</a>).</p>
+</div>
+<table id="tab0206" class="tableblock frame-all grid-all fit-content widetable">
+<caption class="title">Table 6. Release notes, cookie tokens 2.0</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Feature</th>
+<th class="tableblock halign-left valign-top">How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="image gbnew"><img src="images/common/new.svg" alt="new"></span>2.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secure payments</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Digital signatures solve the problem with imposters.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">1.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Simple payment system</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relies on Lisa being trustworthy and knowing everyone’s face</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Finite money supply</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7,200 new CT rewarded to Lisa daily; halves every four years</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Everybody still trusts Lisa to not change the spreadsheet in any way
+except when executing signed cookie token transfers. If Lisa wanted
+to, she could steal anyone’s cookie tokens just by adding a transfer
+to the spreadsheet. But she wouldn’t do that—or would she?</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-21.svg" alt="u02 21">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You now have a lot of new tools to put in your toolbox for later use:
+key-pair generation, digital signing, the signature, and the
+verification.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch02/u02-22.svg" alt="u02 22" width="75%">
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_exercises_2">2.5. Exercises</h3>
+<div class="sect3">
+<h4 id="_warm_up_2">2.5.1. Warm up</h4>
+<div class="olist arabic">
+<ol class="arabic" start="8">
+<li>
+<p>Lisa is currently rewarded 7,200 CT per day for her work. Why won’t
+the supply increase infinitely over time? Why don’t we have 7,200 ×
+10,000 = 72 million CT after 10,000 days?</p>
+</li>
+<li>
+<p>How can coworkers detect if Lisa rewards herself too much or too
+often?</p>
+</li>
+<li>
+<p>How is the private key of a key pair created?</p>
+</li>
+<li>
+<p>What key is used to digitally sign a message?</p>
+</li>
+<li>
+<p>The signing process hashes the message to sign. Why?</p>
+</li>
+<li>
+<p>What would Mallory need to steal cookie tokens from John?</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_dig_in_2">2.5.2. Dig in</h4>
+<div class="olist arabic">
+<ol class="arabic" start="14">
+<li>
+<p>Suppose you have a private key and you’ve given your public key to a
+friend, Fred. Suggest how Fred can send you a secret message that only
+you can understand.</p>
+</li>
+<li>
+<p>Suppose you (let’s pretend your name is Laura) and Fred still have
+the keys from the previous exercise. Now you want to send a message in
+a bottle to Fred saying,</p>
+<div class="listingblock">
+<div class="content">
+<pre>Hi Fred! Can we meet at Tiffany’s at sunset tomorrow? /Laura</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Explain how you would sign the message so Fred can be sure the message
+is actually from you. Explain what steps you and Fred take in the
+process.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_summary">2.6. Summary</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Bitcoins are created as rewards to nodes securing the blockchain.</p>
+</li>
+<li>
+<p>The reward halves every four years to limit the money supply.</p>
+</li>
+<li>
+<p>You can use cryptographic hash functions to detect changes in a file
+or in a message.</p>
+</li>
+<li>
+<p>You can’t make up a pre-image of a cryptographic hash. A pre-image
+is an input that has a certain known output.</p>
+</li>
+<li>
+<p>Digital signatures are useful to prove a payment’s
+authenticity. Only the rightful owner of bitcoins may spend them.</p>
+</li>
+<li>
+<p>Someone verifying a digital signature doesn’t have to know <em>who</em>
+made the signature. They just have to know the signature was made with
+the private key the signature claims to be signed with.</p>
+</li>
+<li>
+<p>To receive bitcoins or cookie tokens, you need a public key. First,
+you create a private key for yourself in private. You then derive your
+public key from your private key.</p>
+</li>
+<li>
+<p>Several strategies are available for storing private keys, ranging
+from unencrypted on your mobile phone to split and encrypted across
+several offline devices.</p>
+</li>
+<li>
+<p>As a general rule of thumb, the more secure the private key is
+against theft, the easier it is to accidentally lose the key, and vice
+versa.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2021-05-19 10:45:14 +0200
+</div>
+</div>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</body>
+</html>

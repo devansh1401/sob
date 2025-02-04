@@ -1,0 +1,179 @@
+@import url("asciidoctor.css");
+
+@page {
+    size: 7.375 9.25;
+    margin: 1in;
+}
+
+.sect2 {
+    page-break-after: always;
+}
+
+body {
+    font-family: serif, sans, sans-serif;
+}
+
+p {
+    /*font-size: 1.25em;*/
+    line-height: 1.2em;
+}
+
+h1, h2, h3, #toctitle, .sidebarblock>.content>.title, h4, h5, h6 {
+    color: #000055;
+    font-weight: bold;
+}
+
+*:not(pre)>code {
+    font-size: 0.8em;
+}
+
+#toc ul {
+    font-family: sans, sans-serif; /*unset;/*"Open Sans","DejaVu Sans",sans-serif;*/
+}
+
+/*body {
+    font-size: 13px;    
+}
+
+p {
+    font-size: 1.1em;
+}*/
+
+/* Uncomment this to make stats needing update blink */
+//.movingtarget {
+//    animation: blinker 0.5s infinite alternate;    
+//}
+//@keyframes blinker { to { opacity: 0.5; } }
+
+
+div>p,.imageblock>.title,div>.tableblock,.dlist,.olist,.ulist,.stemblock,.admonitionblock {
+    width: 75%;
+}
+
+.fullwidth {
+    width: 100%;
+}
+
+.literalblock,.listingblock {
+    /*    width: 100%;*/
+    display: flow-root;
+    font-size: 0.9em;
+}
+/*.literalblock>.title {
+    font-size: 0.9em;
+}*/
+
+/* Don't set sublist width to 75%. */
+li>.olist,li>.ulist,td>.olist,td>.ulist {
+    width: 100%;
+}
+
+/* Some tables need to use the full page width. Set [role="widetable"] on them. */
+div>.widetable {
+    width: 100%;
+}
+
+/* Hack to get list paragraph continuations to not be 75% of previous block.
+See exercise 9 at end of ch2.
+*/
+li p {
+    width:100%
+}
+
+table.tableblock>caption.title {
+    font-size: 0.9em;    
+}
+
+table.tableblock.fit-content>caption.title {
+    white-space: unset;
+    width: unset;
+}
+
+.imageblock>.title {
+    font-size: 0.9em;
+}
+
+.sidebarblock {
+    width: 24%;
+    float: right;
+    clear: right;
+    padding: 0.25em;
+    margin-bottom: 0.25em;
+    page-break-inside: avoid;
+    background: none;
+    border-style: hidden;
+}
+
+.bigside {
+    width: 50%;
+}
+
+.sidebarblock p {
+    font-size: 0.9em;
+    text-align: left;
+}
+
+.sidebarblock>.content>.title {
+    font-size: 1em;
+}
+
+.sidebarblock>.content>.imageblock img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.gbnew img {
+    width:50px;
+}
+
+.important p {
+    font-weight: bold;
+}
+
+.inbitcoin,.gbinfo {
+    border-style: solid;
+}
+
+.gbinfo::before,.inbitcoin::before {
+    float: right;
+    position: relative;
+    top: -10px;
+    right: -10px;
+}
+
+.gbinfo::before {
+    content:url(images/bulb6-trimmed.svg);
+    top: -30px;
+}
+
+.inbitcoin::before {
+    content:url(images/bitcoinLogoThumb.png);   
+}
+
+.periscope::before {
+    content:url(images/periscope.svg);    
+    position: relative;
+    top: 25px;
+    right: -90px;
+}
+
+.inbitcoin>.content>.title,.gbinfo>.content>.title {
+    text-align: left;
+}
+
+.sidebarblock p,.sidebarblock .literalblock {
+    width: 100%;
+}
+
+.btc img {
+    height:1em;
+    position:relative;
+/*    top:0.17em;*/
+    cursor:text;
+}
+
+.smallheight img {
+    max-height: 2em;
+    width: auto;
+}

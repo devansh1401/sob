@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Study Notes: Chapter 8 (Grokking Bitcoin)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    .question {
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .answer {
+      margin-left: 1em;
+    }
+    .figure {
+      margin: 1em 0;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+    }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Study Notes: Chapter 8 – Peer-to-Peer Network</h1>
+
+<!-- 1. FROM SHARED FOLDER TO P2P -->
+<h2>1. Removing the Shared Folder</h2>
+
+<p>
+  In earlier chapters, a <strong>shared folder</strong> acted as a central 
+  authority controlling block publication. This chapter replaces that 
+  folder with a fully <strong>decentralized</strong> 
+  <em>peer-to-peer (P2P) network</em>. Once the shared folder is gone, 
+  there’s no single point of authority to decide which blocks can be 
+  published, improving <em>censorship resistance</em>.
+</p>
+
+<div class="figure">
+  <img src="images/ch08/08-02.svg" alt="08 02" width="60%">
+  <div class="figure-caption">
+    Figure 1. The shared folder administrator was a central authority 
+    (Luke). We remove that by building a decentralized P2P network.
+  </div>
+</div>
+
+
+<!-- 2. PEER-TO-PEER NETWORK OVERVIEW -->
+<h2>2. The Peer-to-Peer Network</h2>
+
+<p class="question">
+  Q: How does a P2P network help remove the final central authority?
+</p>
+<p class="answer">
+  In a P2P network, all full nodes and miners connect directly with each 
+  other instead of relying on a single shared folder. This way, no single 
+  party can block or censor blocks/transactions because information can 
+  travel across alternate paths in the network.
+</p>
+
+<div class="figure">
+  <img src="images/ch08/08-03.svg" alt="08 03" width="70%">
+  <div class="figure-caption">
+    Figure 2. A peer-to-peer “gossip” network: each node connects to 
+    multiple peers and forwards blocks/transactions to them.
+  </div>
+</div>
+
+<ul>
+  <li><strong>Censorship resistance:</strong> a single node refusing to forward a 
+      block or transaction cannot stop the rest of the network from 
+      receiving it.</li>
+  <li><strong>Transaction broadcasting:</strong> wallets broadcast new transactions 
+      to any node they know; that node forwards to others, etc.</li>
+  <li><strong>Block propagation:</strong> once a miner finds a valid block, it sends 
+      it to its peers, who forward it on, etc.</li>
+</ul>
+
+
+<!-- 3. NETWORK MESSAGES & HANDSHAKES -->
+<h2>3. Network Messages & Communication</h2>
+
+<p>
+  Nodes communicate over TCP (Transmission Control Protocol) connections, 
+  speaking the “Bitcoin network protocol.” Key message types include:
+</p>
+<ul>
+  <li><code>inv</code>: “I have these transaction or block IDs”</li>
+  <li><code>getdata</code>: “Send me the data for these IDs”</li>
+  <li><code>tx</code>: “Here’s the full transaction data”</li>
+  <li><code>block</code>: “Here’s the full block data”</li>
+  <li><code>headers</code>: “Here are block headers”</li>
+</ul>
+
+<div class="figure">
+  <img src="images/ch08/08-09.svg" alt="08 09" width="65%">
+  <div class="figure-caption">
+    Figure 3. Example <code>inv</code> message listing two transactions and one block ID.
+  </div>
+</div>
+
+<p class="question">
+  Q: Why do nodes first send <code>inv</code> before <code>tx</code> (or <code>block</code>)?
+</p>
+<p class="answer">
+  Sending <code>inv</code> allows the receiving peer to decide if it wants the data 
+  (maybe it already has it). This saves bandwidth.
+</p>
+
+
+<!-- 4. FOLLOWING A TRANSACTION -->
+<h2>4. Following a Transaction Through the P2P Network</h2>
+
+<p>
+  Let’s see how a single transaction propagates. 
+  <strong>Scenario:</strong> John buys a cookie from the cafe:
+</p>
+<ol>
+  <li><strong>Wallet → Node:</strong> John’s wallet is connected to Tom’s node. 
+      It sends an <code>inv</code> with the txid. Tom replies with <code>getdata</code>, 
+      and John’s wallet sends <code>tx</code>.</li>
+  <li><strong>Node → Node:</strong> Tom checks the transaction. If valid, he sends 
+      <code>inv</code> to his peers (Lisa, Qi, Rashid, cafe, etc.). Each peer that 
+      doesn’t have the transaction will <code>getdata</code> and receive <code>tx</code>.</li>
+  <li><strong>Notifying the recipient (the cafe):</strong> The cafe’s node sees the 
+      transaction matches its bloom filter, so it <code>inv</code>s the cafe’s 
+      lightweight wallet. The cafe’s wallet <code>getdata</code>, and receives 
+      <code>tx</code>. The cafe sees a new pending transaction.</li>
+  <li><strong>Miner includes tx in a block:</strong> Suppose Rashid mines a block 
+      with John’s transaction. He sends <code>headers</code> first, peers reply 
+      with <code>getdata</code>, and he sends <code>block</code>. The block propagates 
+      network-wide.</li>
+  <li><strong>Wallets confirm:</strong> The cafe’s wallet (and John’s) receive a 
+      merkle proof (<code>merkleblock</code>) for that block, showing the transaction 
+      is included. They display “1 confirmation.”</li>
+</ol>
+
+
+<!-- 5. BOOTSTRAPPING A NEW NODE -->
+<h2>5. Bootstrapping: Starting a New Full Node</h2>
+
+<p>
+  A new full node needs to:
+</p>
+<ol>
+  <li>Download and verify the Bitcoin Core software (or other node software).</li>
+  <li>Open connections to peers via IP/port.</li>
+  <li>Download and verify the entire blockchain (headers first, then blocks 
+      on the strongest chain).</li>
+  <li>Enter normal operation (relay new blocks & transactions, etc.).</li>
+</ol>
+
+<div class="figure">
+  <img src="images/ch08/08-27.svg" alt="08 27" width="75%">
+  <div class="figure-caption">
+    Figure 4. The steps for a new node: install, connect to peers, sync 
+    blocks, then join normal operation.
+  </div>
+</div>
+
+<p class="question">
+  Q: Where does the node get peer addresses?
+</p>
+<p class="answer">
+  Possible sources:
+  <ul>
+    <li>Manual config (passed in by the user).</li>
+    <li>Hardcoded DNS seeds (Bitcoin Core code includes fallback 
+        domain names that can return IP addresses).</li>
+    <li>Hardcoded IP addresses in code (rarely used fallback).</li>
+    <li>Asking existing peers (<code>getaddr</code>) for more addresses.</li>
+  </ul>
+</p>
+
+<p class="question">
+  Q: How does the node synchronize the chain?
+</p>
+<p class="answer">
+  <ol>
+    <li>Download and verify <strong>all headers</strong> from the genesis block to 
+        the tip (<code>getheaders</code> / <code>headers</code> exchange).</li>
+    <li>Identify the strongest chain (sum of difficulty in headers).</li>
+    <li>Download full blocks (in parallel from multiple peers) with 
+        <code>getdata</code> / <code>block</code> exchanges.</li>
+    <li>Verify each block’s transactions, build a UTXO set. Possibly skip 
+        signature checks before a certain known “checkpoint” block 
+        if you trust a known chain ID.</li>
+  </ol>
+</p>
+
+
+<!-- 6. FINAL TAKEAWAYS -->
+<h2>6. Key Takeaways</h2>
+<ul>
+  <li><strong>P2P network eliminates central authority:</strong> No single node 
+      can block entire blocks or transactions. There’s no “shared folder” 
+      anymore.</li>
+  <li><strong>Nodes gossip blocks & transactions:</strong> Once a node receives 
+      new data, it “informs” peers with <code>inv</code>, letting them request 
+      the data if needed.</li>
+  <li><strong>Lightweight wallets:</strong> use bloom filters + merkle proofs 
+      so they only download relevant data, not full blocks.</li>
+  <li><strong>Joining the network:</strong> A new node must discover peers, 
+      download + verify all old blocks, then continue in normal mode, 
+      relaying and verifying new transactions + blocks.</li>
+  <li><strong>Bitcoin is fully decentralized now:</strong> No more references 
+      to cookie tokens. The system is ready for real Bitcoin usage.</li>
+</ul>
+
+<hr>
+<p><em>End of Study Notes for Chapter 8. The last piece of centralization 
+(the shared folder) is gone, replaced by a robust P2P network ensuring 
+true decentralization and censorship resistance.</em></p>
+
+</body>
+</html>

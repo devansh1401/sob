@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.15">
+<meta name="author" content="Kalle Rosenbaum">
+<title>Grokking Bitcoin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<link rel="stylesheet" href="style/asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="style/grokking-bitcoin.css">
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>Grokking Bitcoin</h1>
+<div class="details">
+<span id="author" class="author">Kalle Rosenbaum</span><br>
+</div>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#ch01">1. Introduction to Bitcoin</a>
+<ul class="sectlevel2">
+<li><a href="#_what_is_bitcoin">1.1. What is Bitcoin?</a></li>
+<li><a href="#_the_big_picture">1.2. The big picture</a>
+<ul class="sectlevel3">
+<li><a href="#overview-transactions">1.2.1. Step 1: Transactions</a></li>
+<li><a href="#_step_2_the_bitcoin_network">1.2.2. Step 2: The Bitcoin network</a></li>
+<li><a href="#step-3-the-blockchain">1.2.3. Step 3: The blockchain</a></li>
+<li><a href="#overview-wallets">1.2.4. Step 4: Wallets</a></li>
+</ul>
+</li>
+<li><a href="#_problems_with_money_today">1.3. Problems with money today</a>
+<ul class="sectlevel3">
+<li><a href="#_segregation">1.3.1. Segregation</a></li>
+<li><a href="#privacy-issues">1.3.2. Privacy issues</a></li>
+<li><a href="#_inflation">1.3.3. Inflation</a></li>
+<li><a href="#_borders">1.3.4. Borders</a></li>
+</ul>
+</li>
+<li><a href="#_the_bitcoin_approach">1.4. The Bitcoin approach</a>
+<ul class="sectlevel3">
+<li><a href="#decentralized">1.4.1. Decentralized</a></li>
+<li><a href="#limited_supply">1.4.2. Limited supply</a></li>
+<li><a href="#_borderless">1.4.3. Borderless</a></li>
+</ul>
+</li>
+<li><a href="#_how_is_bitcoin_used">1.5. How is Bitcoin used?</a>
+<ul class="sectlevel3">
+<li><a href="#_savings">1.5.1. Savings</a></li>
+<li><a href="#_cross_border_payments">1.5.2. Cross-border payments</a></li>
+<li><a href="#_shopping">1.5.3. Shopping</a></li>
+<li><a href="#speculation">1.5.4. Speculation</a></li>
+<li><a href="#_noncurrency_uses">1.5.5. Noncurrency uses</a></li>
+<li><a href="#_how_is_bitcoin_valued">1.5.6. How is Bitcoin valued?</a></li>
+<li><a href="#when-not-to-use-bitcoin">1.5.7. When not to use Bitcoin</a></li>
+</ul>
+</li>
+<li><a href="#altcoins">1.6. Other cryptocurrencies</a></li>
+<li><a href="#_summary">1.7. Summary</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="ch01">1. Introduction to Bitcoin</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Getting to know Bitcoin</p>
+</li>
+<li>
+<p>Following a Bitcoin payment</p>
+</li>
+<li>
+<p>Problems solved by Bitcoin</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The goal of this book is to teach you enough about Bitcoin to make
+informed decisions about how you can use it to improve your private life
+or business. My hope is that you’ll learn enough to make up your own
+mind whether you trust Bitcoin or not (with any luck, the former). To
+get you off the ground, I’m going to assume you know roughly what the
+following terms mean:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Computer program</p>
+</li>
+<li>
+<p>Database</p>
+</li>
+<li>
+<p>Computer network</p>
+</li>
+<li>
+<p>Web server</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If you’re unsure of any of these terms, don’t worry. Either look them up
+or go ahead anyway—I think you’ll manage.</p>
+</div>
+<div class="sect2">
+<h3 id="_what_is_bitcoin">1.1. What is Bitcoin?</h3>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Bitcoin or bitcoin?</div>
+<div class="paragraph">
+<p>The system is named <em>Bitcoin</em> with a capital B. The currency unit is
+called a <em>bitcoin</em> with a lowercase b. Commonly used symbols for
+bitcoins are <span class="image btc"><img src="images/common/btc-sans.svg" alt="BTC"></span>, BTC, and XBT. We’ll mostly use BTC in this book.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Bitcoin is a digital cash system. It allows for people to move bitcoins,
+the currency unit of Bitcoin, between each other without using a bank or
+any other trusted third party. It resembles traditional bank notes and
+coins, but it’s purely digital and used over the internet. The Bitcoin
+currency isn’t tied to any specific <em>fiat currency</em> like the US dollar
+or the Chinese renminbi; it has free-floating exchange rates against
+most fiat currencies. You can buy and sell bitcoins for fiat currencies
+online using one of several exchanges, such as kraken.com, bitstamp.net,
+or localbitcoins.com.</p>
+</div>
+<div class="paragraph">
+<p>No government or company controls Bitcoin. Instead, thousands of
+computers around the globe—the <em>Bitcoin network</em>, shown in
+<a href="#actors">Figure 1</a>—collectively keep the system working 24/7. You don’t need
+to register or sign up anywhere to use Bitcoin, you just need internet
+access and a computer program, like a mobile app, to use it.</p>
+</div>
+<div id="actors" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-01.svg" alt="01 01" width="75%">
+</div>
+<div class="title">Figure 1. The Bitcoin network and its ecosystem.</div>
+</div>
+<div class="paragraph">
+<p>Anyone can use or participate in the Bitcoin network without special
+permission from a bank or similar institution. Thanks to Bitcoin’s
+<em>permissionless</em> nature, a lot of Bitcoin-related technology has emerged
+over the years. We can roughly categorize participants in this Bitcoin
+ecosystem into several groups:</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Bitcoin doesn’t care</div>
+<div class="paragraph">
+<p>The Bitcoin network doesn’t distinguish between users. No user is more
+important than any other user. It doesn’t matter who they are or what
+they do; everyone participates on the same terms.</p>
+</div>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">End users</dt>
+<dd>
+<p>People using Bitcoin for their day-to-day needs, such as
+savings, shopping, speculation, or salaries</p>
+</dd>
+<dt class="hdlist1">Corporate users</dt>
+<dd>
+<p>Companies using Bitcoin to solve their business
+needs, such as paying wages internationally, or use cases similar to
+those of end users</p>
+</dd>
+<dt class="hdlist1">Merchants</dt>
+<dd>
+<p>For example, a restaurant or a bookstore accepting Bitcoin
+payments</p>
+</dd>
+<dt class="hdlist1">Bitcoin services</dt>
+<dd>
+<p>Companies providing Bitcoin-related services to
+customers, such as topping up mobile phones, anonymization services,
+remittance services, or tipping services</p>
+</dd>
+<dt class="hdlist1">Exchanges</dt>
+<dd>
+<p>Commercial services people can use to exchange their local
+currency to and from bitcoins</p>
+</dd>
+<dt class="hdlist1">Protocols on top</dt>
+<dd>
+<p>Systems that operate “on top” of Bitcoin to perform
+certain tasks, such as payment network protocols, specialized tokens,
+and decentralized exchanges</p>
+</dd>
+<dt class="hdlist1">Bitcoin developers</dt>
+<dd>
+<p>People working, often for free, with the open
+source computer programs that participants of the Bitcoin network use</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The Bitcoin network’s job is to process Bitcoin payments, secure the
+ledger of who owns what from unauthorized modifications, and get new
+bitcoins into circulation at the predetermined rate. The network
+consists of thousands of computers around the world. We call these
+computers <em>Bitcoin nodes</em>, or just <em>nodes</em>. Any of the actors
+mentioned previously can also participate actively in the Bitcoin
+network by running their own Bitcoin node. You must run your own node if
+you don’t want to trust others to provide you with correct financial
+information.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_big_picture">1.2. The big picture</h3>
+<div class="paragraph">
+<p>The Bitcoin network is a network of computers running Bitcoin
+software.  This network verifies and confirms payments between Bitcoin
+users.</p>
+</div>
+<div class="paragraph">
+<p>Suppose Alice wants to make a payment of 1 BTC to Bob. The payment
+starts with Alice creating a transaction and sending it to the Bitcoin
+network, as shown in <a href="#payment-overview">Figure 2</a>. I outline the process’s
+four steps here and explain each step further in the following
+subsections. <a href="#payment-overview">Figure 2</a> will appear in the introduction of
+chapters 2 through 8, where I’ll point out which part of the figure
+we’ll cover in the chapter.</p>
+</div>
+<div id="payment-overview" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-02.svg" alt="01 02" width="100%">
+</div>
+<div class="title">Figure 2. A Bitcoin payment. The payment is processed in four steps.</div>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">I thought Bitcoin was anonymous!</div>
+<div class="paragraph">
+<p>Bitcoin doesn’t use names or any other personal information, but I use
+names in this first example for simplicity.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now, let’s follow Alice’s payment from Alice to Bob:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Alice creates and signs a transaction that moves 1 bitcoin from her to
+Bob. She then sends the transaction to the Bitcoin network.</p>
+</li>
+<li>
+<p>The computers in the network—the Bitcoin nodes—check that Alice actually
+has the money to spend and that the transaction is authentic. They then
+pass the transaction to their neighbors, called <em>peers</em>.</p>
+</li>
+<li>
+<p>Each computer updates its own copy of the <em>Bitcoin blockchain</em>, or the
+<em>ledger</em>, with the new payment information.</p>
+</li>
+<li>
+<p>The network notifies Bob that he has received 1 bitcoin.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Note how Alice does not really <em>send</em> 1 bitcoin to Bob, but asks the
+Bitcoin network to move 1 bitcoin from Alice to Bob in the Bitcoin
+blockchain.</p>
+</div>
+<div class="paragraph important">
+<p>The Bitcoin blockchain is a database that each computer in the Bitcoin
+network has a copy of. Think of the blockchain as a ledger of all
+transactions ever made.</p>
+</div>
+<div class="paragraph">
+<p>We’ll go through these steps in more detail in the next four sections,
+one step per section.</p>
+</div>
+<div class="sect3">
+<h4 id="overview-transactions">1.2.1. Step 1: Transactions</h4>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Transaction</div>
+<div class="paragraph">
+<p>A <em>transaction</em> is a <em>payment</em>. The terms are interchangeable. We
+cover transactions in <a href="#ch05">[ch05]</a> and <a href="#ch09">[ch09]</a>.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Step 1 of the process (<a href="#bitcoin-payment">Figure 3</a>) is when Alice asks the
+network to move 1 bitcoin to Bob. She does this by sending a Bitcoin
+transaction to the Bitcoin network. This transaction contains
+instructions on how to move the money and a digital signature that
+proves it’s really Alice requesting that the money be moved.</p>
+</div>
+<div id="bitcoin-payment" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-03.svg" alt="01 03" width="50%">
+</div>
+<div class="title">Figure 3. Alice creates a transaction, signs it, and sends it to one or more Bitcoin nodes in the Bitcoin network.</div>
+</div>
+<div class="paragraph">
+<p>The Bitcoin <em>transaction</em> is a piece of data specifying</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The amount to move (1 bitcoin)</p>
+</li>
+<li>
+<p>The Bitcoin address to move the money to (Bob’s Bitcoin address,
+<code>15vwoaN74MBeF5nr2BH4DKqndEFjHA6MzT</code>)</p>
+</li>
+<li>
+<p>A <em>digital signature</em> (made with Alice’s private key)</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Digital signatures</div>
+<div class="paragraph">
+<p>We’ll discuss digital signatures in depth in <a href="#ch02">[ch02]</a>.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The digital signature is created from the transaction and a huge
+secret number, called a <em>private key</em>, that only Alice has
+access to. The result is a digital signature that only the private
+key’s owner could have created.</p>
+</div>
+<div class="paragraph">
+<p>Alice’s mobile wallet app is connected to one or more nodes in the
+Bitcoin network and sends the transaction to those nodes.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_step_2_the_bitcoin_network">1.2.2. Step 2: The Bitcoin network</h4>
+<div class="paragraph">
+<p>Alice has sent a transaction to one or more Bitcoin nodes. In step 2
+of the process (<a href="#overview-bitcoin-network">Figure 4</a>), each such node checks
+that the transaction is valid and passes it on to its peers. It does
+this by consulting its local copy of the blockchain and verifying that</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The bitcoin that Alice spends exists.</p>
+</li>
+<li>
+<p>Alice’s digital signature is valid.</p>
+</li>
+</ul>
+</div>
+<div id="overview-bitcoin-network" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-04.svg" alt="01 04" width="100%">
+</div>
+<div class="title">Figure 4. Alice has sent her transaction to a node in the network. The node verifies the transaction and forwards it to other nodes. Eventually, the transaction will reach all nodes in the network.</div>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Invalid transactions</div>
+<div class="paragraph">
+<p>Invalid transactions are dropped. They won’t reach further than the first node.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If all checks pass, a node forwards the transaction to its peers in
+the Bitcoin network. This is known as <em>relaying</em>. Alice’s
+transaction will shortly have traveled the entire network while each
+node verifies it along the way. The blockchain hasn’t been updated
+yet; that’s the next step.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="step-3-the-blockchain">1.2.3. Step 3: The blockchain</h4>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">The blockchain</div>
+<div class="paragraph">
+<p>The name <em>blockchain</em> comes from how the ledger is structured. It uses
+blocks that are chained together in such a way that modifications to the
+blockchain can be detected. I’ll have more on that in <a href="#ch06">[ch06]</a>.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>In step 3, nodes update their local copies of the Bitcoin blockchain
+with Alice’s transaction. The blockchain contains historic information
+about all previous transactions; new transactions, such as Alice’s, are
+appended to it every now and then.</p>
+</div>
+<div class="paragraph">
+<p>Updating the blockchain with Alice’s transaction isn’t as
+straightforward as it might seem. Alice’s transaction isn’t the only
+one going on in the Bitcoin network. Potentially thousands of
+transactions can be in flight at the same time. If all nodes updated
+their copy of the blockchain as they received transactions, the copies
+wouldn’t remain copies for long because transactions can come in
+different orders on different nodes, as <a href="#txs-unordered">Figure 5</a> shows.</p>
+</div>
+<div id="txs-unordered" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-05.svg" alt="01 05" width="75%">
+</div>
+<div class="title">Figure 5. Transactions arrive in different orders at different nodes. If all nodes wrote their transactions to the blockchain in order of arrival, the different nodes’ blockchains would differ.</div>
+</div>
+<div class="paragraph">
+<p>To coordinate the ordering of transactions, one node takes the lead,
+saying “I want to add these two transactions to the blockchain in the
+order Y, X!” This message, known as a <em>block</em>, is sent out on the
+network by that leader (<a href="#step-3">Figure 6</a>), in the same way that Alice sent the
+transaction.</p>
+</div>
+<div id="step-3" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-06.svg" alt="01 06" width="75%">
+</div>
+<div class="title">Figure 6. One node takes the lead and tells the others in what order to add transactions. The other nodes verify the block and update their blockchain copies accordingly.</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">The blockchain is append-only</div>
+<div class="paragraph">
+<p>New transactions are added to the end of the blockchain only—it grows
+only from the end.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>As nodes see this block, they update their copy of the blockchain
+according to the message and pass the block on to their peers. Alice’s
+transaction was one of the transactions in the block and is now part of
+the blockchain.</p>
+</div>
+<div class="paragraph">
+<p>Why would a node want to take the lead? The node that takes the lead is
+rewarded with newly minted bitcoins and transaction fees paid by the
+transactions it includes in the block.</p>
+</div>
+<div class="paragraph">
+<p>But wouldn’t every node constantly take the lead to collect the
+rewards? No, because to take the lead, a node must solve a hard problem.
+This requires the node to consume considerable time and electricity,
+which ensures that leaders don’t pop up often. The problem is so hard
+that most nodes in the network don’t even try. Nodes that do try are
+called <em>miners</em> because they mine new coins, similar to a gold miner
+digging for gold. We’ll discuss this process further in <a href="#ch07">[ch07]</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="overview-wallets">1.2.4. Step 4: Wallets</h4>
+<div class="paragraph">
+<p>Bob and Alice are Bitcoin network users, and they both need a computer
+program to interact with the network. Such a program is called a
+<em>Bitcoin wallet</em>. Several types of Bitcoin wallets are available for
+different devices, such as mobile phones and desktop computers, and
+there are even specialized hardware wallet devices.</p>
+</div>
+<div class="paragraph">
+<p>Before step 4 of the payment process, the nodes in the network update
+their local copy of the blockchain. Now, the network needs to notify
+Alice and Bob that the transaction went through, as
+<a href="#wallet-connection">Figure 7</a> shows.</p>
+</div>
+<div id="wallet-connection" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-07.svg" alt="01 07" width="100%">
+</div>
+<div class="title">Figure 7. Bob’s wallet has asked a node to notify the wallet upon activity at Bob’s Bitcoin address. Alice pays to Bob’s address, and the node has just written the transaction to the blockchain, so it notifies Bob’s wallet.</div>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Wallet duties</div>
+<div class="paragraph">
+<p>A typical Bitcoin wallet will</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Manage keys</p>
+</li>
+<li>
+<p>Watch incoming/outgoing bitcoins</p>
+</li>
+<li>
+<p>Send bitcoins</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Bob’s wallet is connected to some of the nodes in the Bitcoin network.
+When a transaction concerning Bob is added to the blockchain, the
+nodes that Bob’s wallet is connected to will notify Bob’s wallet. The
+wallet will then display a message to Bob that he received 1
+bitcoin. Alice also uses a wallet. Her wallet will be notified of her
+own transaction.</p>
+</div>
+<div class="paragraph">
+<p>Besides sending and receiving transactions, Bob’s and Alice’s wallets
+also manage their private keys for them. As described earlier, a
+private key is used to create digital signatures, as well as to
+generate a Bitcoin address. Alice created her digital signature with
+one of her private keys. When Bob later wants to spend the money he
+received at his Bitcoin address, which he generated from his private
+key, he needs to create a transaction and digitally sign it with that
+private key.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_problems_with_money_today">1.3. Problems with money today</h3>
+<div class="paragraph">
+<p>Bitcoin wouldn’t be this widespread if it didn’t solve real problems
+for real people. Bitcoin solves several problems inherent to the
+traditional financial system. Let’s look at some commonly discussed
+problem areas.</p>
+</div>
+<div class="sect3">
+<h4 id="_segregation">1.3.1. Segregation</h4>
+<div class="paragraph">
+<p>People with bank accounts and access to banking services such as
+online payments or loans are privileged. According to the World Bank,
+about 38% of the world’s population doesn’t have a bank account (see
+<a href="#web-financial-inclusion">[web-financial-inclusion]</a>). The numbers are slowly improving, but
+many people are still stuck in a cash-only environment.</p>
+</div>
+<div class="paragraph">
+<p>Without a bank account and basic banking services, such as online
+payments, people can’t expand their businesses outside their local
+communities. A merchant won’t be able to offer goods or services on
+the internet to increase its customer base. A person living in a rural
+area might have to travel half a day to pay a utility bill or top up
+their prepaid mobile phone.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problems</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> <strong>Segregation</strong></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>This segregation between banked people and unbanked people is driven
+by several factors:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Banking services are too expensive for some people.</p>
+</li>
+<li>
+<p>To use banking services, you need documentation, such as an ID card,
+that many people don’t have.</p>
+</li>
+<li>
+<p>Banking services can be denied to people with certain political
+views or those conducting certain businesses. People might also be
+denied service due to their ethnicity, nationality, sexual
+preferences, or skin color.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="privacy-issues">1.3.2. Privacy issues</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch01/u01-02.svg" alt="u01 02">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>When it comes to electronic payments such as credit cards or bank
+transfers, traditional money poses several privacy problems. States can
+easily</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Trace payments</p>
+</li>
+<li>
+<p>Censor payments</p>
+</li>
+<li>
+<p>Freeze funds</p>
+</li>
+<li>
+<p>Seize funds</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You might say, “I have nothing to hide, and the government needs these
+tools to fight crime.” The problem is, you don’t know what your
+government will look like in five years and how that government defines
+crime. New laws are just an election away. After the next election, your
+government could pass a law that allows it to freeze the funds of people
+with your political view. In some parts of the world, this is already
+happening.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problems</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> Segregation</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> <strong>Privacy issues</strong></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We’ve seen lots of examples in which these powers are abused to
+disable someone’s ability to transact. For example, the nonprofit
+organization WikiLeaks was put under a blockade in 2010 in which all
+donations through traditional channels were blocked after pressure
+from the US government on the major payment networks, such as Visa and
+Mastercard (see <a href="#web-wikileaks-blockade">[web-wikileaks-blockade]</a>). We’ve also seen how
+Cyprus seized 47.5% of all bank deposits exceeding 100,000 € as part
+of a financial rescue program in 2013 (<a href="#web-cyprus-seizure">[web-cyprus-seizure]</a>).</p>
+</div>
+<div class="paragraph">
+<p>Note that bank notes and coins usually aren’t affected. As long as
+there is cash, people can trade freely and privately. In some parts of
+the world—for example, Sweden—cash is being phased out, which means
+soon you won’t be able to buy chewing gum without someone recording
+your transaction.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_inflation">1.3.3. Inflation</h4>
+<div class="paragraph">
+<p><em>Inflation</em> means the purchasing power of a currency decreases
+(<a href="#inflation-apples">Figure 8</a>).</p>
+</div>
+<div id="inflation-apples" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-08.svg" alt="01 08" width="75%">
+</div>
+<div class="title">Figure 8. Inflation</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problems</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> Segregation</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Privacy issues</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> <strong>Inflation</strong></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Most currencies are subject to inflation, some more than others. For
+example, the Zimbabwean dollar inflated nearly 10<sup>23</sup>% from 2007–2008,
+peaking at 80 billion percent per month during a few months in 2008.
+That’s an average daily inflation rate of nearly 100%. Prices roughly
+doubled every day.</p>
+</div>
+<div class="paragraph">
+<p>Extreme cases of inflation like this are called <em>hyperinflation</em>,
+and are usually driven by a rapid increase in the money
+supply. Governments sometimes increase the money supply as a tool to
+extract value from the population and pay for expenses such as the
+national debt, warfare, or welfare. If this tool is overused, the risk
+of hyperinflation is apparent.</p>
+</div>
+<div class="paragraph">
+<p>A rapid increase in the money supply will most likely lead to a
+depreciation of a country’s currency. This, in turn, pushes people to
+exchange their local currency for goods or alternative currencies that
+better hold value, which further drives down the value of the local
+currency. This can spiral to extremes, as in Zimbabwe. The result is
+devastating for people as they see their life savings diminish to
+virtually nothing. <a href="#inflation-table">Table 1</a> shows examples of recent
+hyperinflations.</p>
+</div>
+<table id="inflation-table" class="tableblock frame-all grid-all stretch movingtarget">
+<caption class="title">Table 1. Some hyperinflations in modern time. Source: Wikipedia</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Country</th>
+<th class="tableblock halign-left valign-top">Year</th>
+<th class="tableblock halign-left valign-top">Worst monthly inflation (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Zimbabwe</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2007-2008</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.19*10<sup>16</sup></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yugoslavia</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1992-1994</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">313*10<sup>6</sup></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Peru</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1990</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">397</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Ukraine</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1992-1994</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">285</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Venezuela</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2012-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">120</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Zimbabwe is one of the most extreme cases of inflation throughout
+history, but even today, some countries suffer from very high inflation.
+One is Venezuela, where its currency, the bolívar, experienced an 254%
+inflation rate during 2016 and suffered from about a 1,088% inflation
+rate in 2017. A staggering 1,370,000% inflation rate is forecast for
+2018.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_borders">1.3.4. Borders</h4>
+<div class="paragraph">
+<p>Moving value across national borders using national, or <em>fiat</em>,
+currency is hard, expensive, and sometimes even forbidden. If you want
+to send 1,000 Swedish crowns (SEK) from Sweden to a person in the
+Philippines, you can use a service like Western Union for the transfer.
+At the time I investigated this, 1,000 SEK was worth 5,374 Philippine
+pesos (PHP) or 109 US dollars. See <a href="#remittance-table">Table 2</a>.</p>
+</div>
+<table id="remittance-table" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Cost of sending 5,374 PHP from Sweden to the Philippines</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Send from</th>
+<th class="tableblock halign-left valign-top">Receive to</th>
+<th class="tableblock halign-left valign-top">Received by recipient</th>
+<th class="tableblock halign-left valign-top">Fees</th>
+<th class="tableblock halign-left valign-top">Fees %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bank</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bank</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5,109 PHP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">265 PHP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.9%</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bank</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cash</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4,810 PHP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">564 PHP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10.5%</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Credit card</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cash</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4,498 PHP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">876 PHP</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16.3%</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>If the recipient has a bank account that can receive an international
+money transfer, you can get away with a 4.9% fee. But a typical
+remittance recipient will be able to receive only cash, which doubles
+or triples the cost to 10.5% or 16.3%, depending on how quickly or
+conveniently they want it.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problems</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> Segregation</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Privacy issues</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Inflation</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> <strong>Borders</strong></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>In contrast with international transfers, moving fiat currency within
+a nation state’s borders is usually convenient. For example, you can
+hand over cash directly to the recipient or transfer money using some
+mobile app made specifically for the currency. As long as you stay
+within one country and one currency, fiat currencies usually do a
+good job.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_bitcoin_approach">1.4. The Bitcoin approach</h3>
+<div class="paragraph">
+<p>Bitcoin offers a fundamentally different model than traditional
+financial institutions. Let’s explore the major differences one
+by one.</p>
+</div>
+<div class="sect3">
+<h4 id="decentralized">1.4.1. Decentralized</h4>
+<div class="paragraph">
+<p>Instead of a central organization such as the US Federal Reserve
+controlling the currency, control of Bitcoin is distributed among
+thousands of computers, or nodes. No single node or group of nodes has
+more privileges or obligations than any other. This equality between
+nodes makes Bitcoin <em>decentralized</em>, as opposed to <em>centralized</em>
+systems, such as banks or the Google search engine
+(<a href="#centalized-decentralized">Figure 9</a>).</p>
+</div>
+<div class="paragraph">
+<p>In a centralized system, the service is controlled by a single entity,
+such as a bank. This single entity can decide who gets to use the
+service and what the user is allowed to do. For example, an online video
+service can choose to provide a video only to people in a certain
+geographical location.</p>
+</div>
+<div id="centalized-decentralized" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-09.svg" alt="01 09" width="50%">
+</div>
+<div class="title">Figure 9. Centralized and decentralized services</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problems fixed</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-check-square-o"></i> <strong>Segregation</strong></p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> <strong>Privacy issues</strong></p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Inflation</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Borders</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>With a decentralized system such as Bitcoin, which has several
+thousands of nodes spread around the globe, it’s extremely hard to
+control who uses the system and how. No matter where or who they are, or
+to whom they’re sending money, the Bitcoin system will treat all users
+equally. The Bitcoin system has no central point that can be exploited
+to censor payments, deny users service, or seize funds.</p>
+</div>
+<div class="paragraph important">
+<p>As mentioned, Bitcoin is permissionless, which means you don’t need to
+ask anyone for permission to participate. Anyone with a computer and an
+internet connection can set up a Bitcoin node and take an active role in
+the Bitcoin network—no questions asked, no registration required.</p>
+</div>
+<div class="paragraph">
+<p>Changing the rules of Bitcoin is nearly impossible without broad
+consensus. If a node doesn’t obey the rules, the rest of the nodes will
+ignore it. For example, one rule is that Bitcoin’s money supply is
+limited to 21 million bitcoins. This limit is nearly impossible to
+change because of decentralization; there’s no one you can threaten or
+bribe to change these rules.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="limited_supply">1.4.2. Limited supply</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problems fixed</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-check-square-o"></i> Segregation</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> Privacy issues</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> <strong>Inflation</strong></p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Borders</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Because Bitcoin’s money supply won’t exceed 21 million bitcoins, people
+can be sure that if they own 1 bitcoin, they will <em>always</em> own at
+least one 21-millionth of the total supply of bitcoins. This feature
+isn’t found in any fiat currency, where decisions on supply are made
+every so often by a company or state. Bitcoin is resistant to high
+inflation because you can’t increase the money supply at will.</p>
+</div>
+<div class="paragraph">
+<p>Bitcoin’s money supply isn’t fixed today. It’s increasing, at a
+diminishing rate, according to a <em>predetermined</em> schedule and will
+eventually stop increasing around the year 2140. See <a href="#supply-curve">Figure 10</a>.</p>
+</div>
+<div id="supply-curve" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-10.svg" alt="01 10" width="75%">
+</div>
+<div class="title">Figure 10. The supply of bitcoins approaches 21 million over time. The increase is barely visible during the last 100 years before 2140.</div>
+</div>
+<div class="paragraph movingtarget">
+<p>As of this writing, the money supply is about 17 million bitcoins, and
+the current yearly increase is at roughly 4%. This increase is halved
+every four years.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_borderless">1.4.3. Borderless</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problems fixed</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-check-square-o"></i> Segregation</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> Privacy issues</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> Inflation</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> <strong>Borders</strong></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Because Bitcoin is a system run by ordinary computers connected to the
+internet, it’s as global as the internet. This means anyone with an
+internet connection can send money to other people across the world,
+as <a href="#borderless">Figure 11</a> illustrates.</p>
+</div>
+<div id="borderless" class="imageblock">
+<div class="content">
+<img src="images/ch01/01-11.svg" alt="01 11" width="75%">
+</div>
+<div class="title">Figure 11. Bitcoin is borderless</div>
+</div>
+<div class="paragraph">
+<p>There is no difference between sending a bitcoin to someone in the
+same room or sending it to someone on another continent. The
+experience is the same: money is sent directly to the recipient, who
+sees the payment nearly instantaneously. Within about 60 minutes, this
+recipient can be <em>sure</em> the money is theirs. Once settled, the
+transfer can’t be reversed without the recipient’s consent.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_how_is_bitcoin_used">1.5. How is Bitcoin used?</h3>
+<div class="paragraph">
+<p>So far, we’ve touched on a few common use cases for Bitcoin. This
+section will dig deeper into those use cases and a few others. It’s
+hard to predict what use cases we’ll see in the future, so let’s stick
+to what we know now.</p>
+</div>
+<div class="sect3">
+<h4 id="_savings">1.5.1. Savings</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch01/vault.png" alt="vault">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>One interesting Bitcoin feature is that you keep your money safe by
+storing a set of private keys: the secret pieces of information you’ll
+need when you want to spend your money. You choose how those private
+keys are stored. You can write them on paper, or you can store them
+electronically with a mobile app to have easy access to them. You can
+also memorize your private keys. These keys are all anyone needs to
+spend your money. Keep them safe.</p>
+</div>
+<div class="paragraph">
+<p>Savings is an attractive use case for Bitcoin. A simple way to save is
+to create a private key and write it down on a piece of paper that you
+store in a safe. This piece of paper is now your savings account, your
+savings wallet. You can then send bitcoins to your wallet. As long as
+your private key is kept safe, your money is safe. You can choose from
+a lot of different saving schemes to find the right balance between
+security and convenience. For example, you can keep your keys
+unencrypted in your mobile phone for easy access or store them
+encrypted on paper in a vault with armed guards.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_cross_border_payments">1.5.2. Cross-border payments</h4>
+<div class="paragraph">
+<p>As noted, moving money from one country to another is expensive (say,
+15%), especially if you move money to a poor country, and the
+recipient doesn’t have a bank account. It’s becoming increasingly
+popular to use Bitcoin to circumvent this expensive and slow legacy
+system. It’s usually cheaper to exchange Swedish crowns for bitcoins
+in Sweden and transfer the bitcoins to your friend in the
+Philippines. Your friend will then exchange the bitcoins locally for
+Philippine pesos.</p>
+</div>
+<div class="paragraph">
+<p>Some companies offer services so that you pay Swedish crowns to the
+company and the company pays out Philippine pesos to your friend
+(<a href="#remittance-company">Figure 12</a>). You won’t even know that Bitcoin is used
+under the hood. Such companies typically charge a few percent for the
+service, but it will still be cheaper than traditional remittance
+services.</p>
+</div>
+<div id="remittance-company" class="imageblock">
+<div class="content">
+<img src="images/ch01/u01-04.svg" alt="u01 04" width="75%">
+</div>
+<div class="title">Figure 12. A remittance company uses Bitcoin to transfer money from Sweden to the Philippines.</div>
+</div>
+<div class="paragraph">
+<p>Of course, if recipients can make good use of Bitcoin where they live,
+there’s no need for a middleman that takes a cut of the money. You can
+send bitcoins directly to your friend. This is what Bitcoin is all
+about. Exchanges and other such service companies are just bridges
+between the old legacy world and the new Bitcoin world.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_shopping">1.5.3. Shopping</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch01/u01-05.svg" alt="u01 05">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The most obvious use case for Bitcoin is shopping. Bitcoin’s
+borderlessness and security make it ideal for online payments for
+goods and services.</p>
+</div>
+<div class="paragraph">
+<p>In traditional online payments, you send your debit card details to
+the merchant and <em>hope</em> the merchant will withdraw as much as you
+agreed on.  You also <em>hope</em> the merchant handles your debit card
+details with great care. They probably store the details in a
+database. Think about that: for every debit card purchase you make,
+your card details will be stored in that merchant’s database. It’s
+likely that <em>one</em> of the databases will be hacked and your card
+details stolen. The more merchants store your details, the higher the
+risk.</p>
+</div>
+<div class="paragraph">
+<p>With Bitcoin, you don’t have that problem because you don’t send any
+sensitive information to the merchant, or anyone else. You transfer
+the amount of money you agreed on and nothing more.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="speculation">1.5.4. Speculation</h4>
+<div class="paragraph">
+<p>The world is full of people wanting to get rich quick. Bitcoin can be
+alluring to them because of its price <em>volatility</em>, or tendency to
+change. Looking at the history of bitcoin’s price, as shown in
+<a href="#btc-price">Figure 13</a>, it’s tempting to try to buy when it’s low and sell when
+it’s high.</p>
+</div>
+<div id="btc-price" class="imageblock movingtarget">
+<div class="content">
+<img src="images/ch01/01-12.svg" alt="01 12" width="75%">
+</div>
+<div class="title">Figure 13. Price in USD since the beginning of Bitcoin</div>
+</div>
+<div class="paragraph movingtarget">
+<p>In November 2013, the price climbed from about $100 USD to more than
+$1100 in a few weeks. This was clearly a so-called <em>bubble</em>, in which
+people were afraid of missing out on a great rise, so they bought in,
+driving the price further up, until it eventually started dropping
+again. The drop to 50% of its peak value was just as quick as its rise.
+The same pattern repeated in late 2017 but at a greater magnitude. This
+has happened many times already. Fluctuations like this are rarely
+driven by any specific news or technological advancement, but usually
+arise from speculation. Speculation can be fun, if you can afford to
+lose, but it’s more like a lottery than something to make a living from.</p>
+</div>
+<div class="paragraph">
+<p>Sometimes a government or big corporation makes a negative statement
+about Bitcoin that creates fear in the market, but those events tend to
+have a limited effect on bitcoin’s value.</p>
+</div>
+<div class="paragraph">
+<p>Bitcoin’s price volatility seems contradictory to the claims of it
+having a non-inflationary property; a 50% drop in market value appears
+pretty inflationary. Bitcoin is still relatively new, and lots of
+short-term speculation causes this volatility. But as Bitcoin grows and
+more people and institutions start using it to store their wealth, it
+will probably stabilize in the long run, and its deflationary property
+will emerge over time.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_noncurrency_uses">1.5.5. Noncurrency uses</h4>
+<div class="paragraph">
+<p>Bitcoin is digital cash, but this form of cash can be used for things
+beyond money. This section covers two common uses, but there are
+others, including those not yet invented.</p>
+</div>
+<div class="sect4">
+<h5 id="_ownership">Ownership</h5>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch01/u01-06.svg" alt="u01 06">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Bitcoin lets you embed small pieces of data with payments. This data
+can be, for example, a chassis number of a car. When the car leaves
+the factory, the manufacturer can make a small Bitcoin payment to the
+new car owner, containing the chassis number. This payment will then
+represent the transfer of ownership for that car.</p>
+</div>
+<div class="paragraph">
+<p>Bitcoin payments are public records, but they aren’t tied to people in
+any way. They’re tied to long strings of numbers called <em>public
+keys</em>, explained in detail in <a href="#ch02">[ch02]</a>. The car manufacturer has made
+its public key available on its website, in newspapers, and in
+advertisements to tie the key to the manufacturer’s identity. Anyone
+can then verify that the manufacturer has transferred ownership of the
+car to the new owner. The new owner can show that she owns the car by
+proving that she owns the private key belonging to the public key to
+which the manufacturer has transferred ownership.</p>
+</div>
+<div class="paragraph">
+<p>The new owner can sell the car to someone else and transfer ownership
+by sending the same bitcoins she got from the manufacturer to the new
+owner’s public key. The general public can follow the car’s ownership
+from the manufacturer through every owner’s public key up to the
+current owner.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_proof_of_existence">Proof of existence</h5>
+<div class="paragraph">
+<p>Using the same technique to store data in a Bitcoin payment to transfer
+ownership of a car, you can prove that a document existed prior to a
+certain point in time.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch01/u01-07.svg" alt="u01 07">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>A digital document has a <em>fingerprint</em>: a cryptographic hash that
+anyone can calculate from that document. Creating a different document
+with the same fingerprint is practically impossible. This fingerprint
+can be attached to a Bitcoin payment. Where the money goes is
+irrelevant; the important thing is that the fingerprint is recorded in
+the Bitcoin blockchain. You “anchor” the document in the blockchain.</p>
+</div>
+<div class="paragraph">
+<p>Bitcoin payments are public records, so anyone can verify that the
+document existed before the time of the payment by taking the
+document’s fingerprint and comparing it to the fingerprint stored in
+the blockchain.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_how_is_bitcoin_valued">1.5.6. How is Bitcoin valued?</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch01/u01-08.svg" alt="u01 08">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>As you read in the <a href="#speculation">Section 1.5.4</a>, a bitcoin’s price can
+fluctuate dramatically. But where does this price come from? Several
+Bitcoin exchanges exist, most of them internet-based. They resemble
+stock markets, where users wanting to sell bitcoins are matched with
+users wanting to buy bitcoins.</p>
+</div>
+<div class="paragraph">
+<p>Different markets can have different market prices depending on the
+supply and demand in that market. For example, in countries such as
+Venezuela, where the government tries to hinder the Bitcoin market, the
+supply is low. But the demand is high because people want to escape
+their hyperinflating currency. These factors drive the Bitcoin price up
+in that market compared to, for example, the US and European markets,
+where people can trade more freely.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="when-not-to-use-bitcoin">1.5.7. When not to use Bitcoin</h4>
+<div class="paragraph">
+<p>Bitcoin is nice and all, but it’s not suitable for all financial
+activity. At least, not yet.</p>
+</div>
+<div class="sect4">
+<h5 id="_tiny_payments">Tiny payments</h5>
+<div class="paragraph">
+<p>A Bitcoin transaction should usually include a processing fee. This fee
+isn’t related to the amount sent but to how big the transaction is in
+bytes. This is because the Bitcoin network’s cost for processing a
+transaction depends mostly on how big (in bytes) the transaction is.
+High-value transactions aren’t bigger (in bytes) than low-value
+transactions, so the fee is about the same for both kinds of
+transactions. The fee required for a transaction also depends on supply
+and demand for available space in the blockchain. The blockchain can’t
+handle more than roughly 12 MB of transactions per hour, which means
+miners sometimes have to prioritize transactions. Paying a higher fee
+will probably give your transaction a higher priority.</p>
+</div>
+<div class="paragraph">
+<p>If the fee is a significant share of the actual payment you want to
+make, it isn’t economically viable to pay with ordinary Bitcoin
+transactions (see <a href="#fee-feasibility">Table 3</a>).</p>
+</div>
+<table id="fee-feasibility" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Feasibility of different fee levels</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Amount to transfer</th>
+<th class="tableblock halign-left valign-top">Fee</th>
+<th class="tableblock halign-left valign-top">Fee %</th>
+<th class="tableblock halign-left valign-top">Feasible</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 BTC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.003 BTC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.15%</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.002 BTC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.001 BTC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">50%</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Probably not</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.001 BTC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.005 BTC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">500%</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph movingtarget">
+<p>But promising emerging technologies are being built on top of Bitcoin.
+One example is the Lightning Network, which allows for cheap,
+instantaneous micropayments of tiny fractions of a bitcoin. Using the
+Lightning Network, you could potentially pay just 100 satoshis (where
+1 satoshi = 0.00000001 BTC) at a fee of as little as 1 satoshi.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_instant_payments">Instant payments</h5>
+<div class="paragraph">
+<p>Bitcoin payments take time to confirm. The recipient sees the payment
+immediately but shouldn’t trust the payment until the Bitcoin network
+confirms it, which typically happens within 20 minutes. Trusting an
+unconfirmed transaction can be risky; the sender can <em>double spend</em> the
+bitcoins by sending the same bitcoins in another transaction to another
+Bitcoin address—for example, the sender’s.</p>
+</div>
+<div class="paragraph">
+<p>The confirmation time can add friction in brick-and-mortar shops because
+customers don’t want to wait 20 minutes before getting their coffee.
+This might not be a big issue in some online shops, where the shop can
+wait 20 minutes before sending the goods to the customer; but some
+online services, such as pay-per-view, could find the confirmation time
+problematic.</p>
+</div>
+<div class="paragraph">
+<p>This limitation can also be fixed by systems built on top of Bitcoin—for
+example, the Lightning Network—especially when the payment amount is
+small.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_savings_you_cant_afford_to_lose">Savings you can’t afford to lose</h5>
+<div class="paragraph">
+<p>Bitcoin is probably the most secure money there is, but it’s still in
+its infancy. Things <em>could</em> go bad with Bitcoin, as in the following
+scenarios:</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Bitcoin security</div>
+<div class="paragraph">
+<p>You are in charge of the security of your bitcoins. Only you. Be careful!</p>
+</div>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>You lose your private keys: the secrets you must have to spend your
+money.</p>
+</li>
+<li>
+<p>Your private keys are stolen by some bad guy.</p>
+</li>
+<li>
+<p>The government in your location tries to crack down on Bitcoin users
+by imprisonment or other means of force.</p>
+</li>
+<li>
+<p>The price of Bitcoin swings down dramatically due to rumors or
+speculation.</p>
+</li>
+<li>
+<p>Software bugs make Bitcoin insecure.</p>
+</li>
+<li>
+<p>Weaknesses arise in the cryptography Bitcoin uses.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Although all these risks are <em>possible</em>, most of them are unlikely.
+This list is somewhat ordered with the most likely at the top. Always
+weigh the risks before putting money on the line, and select your
+security measures accordingly. This book will help you understand the
+risks and how to secure your money.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="altcoins">1.6. Other cryptocurrencies</h3>
+<div class="paragraph">
+<p>This book will cover Bitcoin, but several other so-called
+<em>crypto­currencies</em> exist, and new ones pop up all the time.
+Cryptocurrencies other than Bitcoin are often referred to as
+<em>alt-coins</em>, meaning <em>alternative coins</em>. I’ll list a few alt-coins
+along with their purpose and market capitalization, or <em>market cap</em>
+(<a href="#altcoins-table">Table 4</a>). The market cap is the product of the money supply (number
+of coins) and the current market price per coin. Note that the market
+cap will most likely have changed a lot by the time you read this. I
+include this information only to give you a glimpse of Bitcoin’s
+position relative to other cryptocurrencies.</p>
+</div>
+<table id="altcoins-table" class="tableblock frame-all grid-all stretch movingtarget">
+<caption class="title">Table 4. Market capitalization of a few cryptocurrencies as of 11 November 2018</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 50%;">
+<col style="width: 16.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Currency</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
+<th class="tableblock halign-left valign-top">Market cap (billions of dollars)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="image smallheight"><img src="images/ch01/bitcoin-logo.png" alt="bitcoin logo"></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Global money; included for reference</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">111</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="image smallheight"><img src="images/ch01/ethereum-logo.png" alt="ethereum logo"></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Running software on a decentralized abstract computer</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">22.4</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="image smallheight"><img src="images/ch01/monero-logo.png" alt="monero logo"></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privacy</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.7</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="image smallheight"><img src="images/ch01/zcash-logo.png" alt="zcash logo"></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privacy</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.8</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><span class="image smallheight"><img src="images/ch01/namecoin-logo.png" alt="namecoin logo"></span></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Naming system; complements the domain name system (DNS)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.008</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>I encourage you to look up these cryptocurrencies, because they all
+provide interesting new features beyond Bitcoin. Hundreds of other
+alt-coins exist. Some, such as those in the table, provide unique
+features that aren’t available in Bitcoin, and others provide little to
+nothing innovative. Some alt-coins may even be outright scams. Stay
+vigilant.</p>
+</div>
+<div class="paragraph">
+<p>Anyone can create an alt-coin by taking existing cryptocurrency software
+and modifying it to their needs.</p>
+</div>
+<div class="paragraph">
+<p>Let’s say Sheila wants to start an alt-coin, Wowcoin. She takes the
+Bitcoin software and changes the maximum money supply to 11,000,000,
+instead of Bitcoin’s 21,000,000 coins. When she starts Wowcoin, Sheila
+will be lonely because no one else is using her alt-coin. If she wants
+Wowcoin to have some real value, she must convince other people to begin
+using it. If she’s not providing anything innovative, she’s going to
+have a hard time getting other people on board, because they’re pretty
+happy with what Bitcoin already provides. Everybody else is using
+Bitcoin, so why would you use Wowcoin? Think of it as starting a new
+internet that you call Wownet. People on Wownet won’t be able to use
+services on the internet. Conversely, people on the internet won’t be
+able to use your service if you’re on Wownet. So why would anyone use
+Wownet? We call this the <em>network effect</em> (see <a href="#network-effect">Figure 14</a>)—people tend
+to go where other people are.</p>
+</div>
+<div id="network-effect" class="imageblock">
+<div class="content">
+<img src="images/ch01/u01-09.svg" alt="u01 09" width="50%">
+</div>
+<div class="title">Figure 14. Network effect</div>
+</div>
+<div class="paragraph">
+<p>Although some interesting alt-coins are out there, it’s hard to tell
+which of these will survive long-term. Also, picking one or a few
+alt-coins to cover in this book would be an arbitrary choice.
+Consequently, I focus solely on Bitcoin.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_summary">1.7. Summary</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Bitcoin is global, borderless money that anyone with an internet
+connection can use.</p>
+</li>
+<li>
+<p>Many different actors use Bitcoin, including savers, merchants, and
+traders for various purposes, such as payments, remittances, and
+savings.</p>
+</li>
+<li>
+<p>A network of computers, the Bitcoin network, verifies and keeps records
+of all payments.</p>
+</li>
+<li>
+<p>A transaction goes through the following steps: send transaction, verify
+transaction, add transaction to the blockchain, and notify the recipient
+and sender wallets.</p>
+</li>
+<li>
+<p>Bitcoin solves problems with inflation, borders, segregation, and
+privacy by providing limited supply, decentralization, and
+borderlessness.</p>
+</li>
+<li>
+<p>Several alternative cryptocurrencies exist apart from Bitcoin, such as
+Ethereum, Zcash, and Namecoin.</p>
+</li>
+<li>
+<p>A (crypto)currency becomes more useful as more users use it. This is
+called the network effect.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2021-05-19 10:45:14 +0200
+</div>
+</div>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</body>
+</html>

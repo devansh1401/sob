@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Study Notes: Chapter 6 (Grokking Bitcoin)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    .question {
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .answer {
+      margin-left: 1em;
+    }
+    .figure {
+      margin: 1em 0;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+    }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Study Notes: Chapter 6 – The Blockchain</h1>
+
+<!-- 1. NEED FOR BLOCKCHAIN -->
+<h2>1. Why a Blockchain Instead of a Spreadsheet?</h2>
+
+<p class="question">
+  Q1: What limitation did the old spreadsheet-based system still have?
+</p>
+<p class="answer">
+  Lisa could silently <em>delete</em> or revert transactions without verifiers 
+  being able to prove it. Although users could confirm the validity of 
+  transactions, they couldn't prove Lisa hadn't removed any 
+  after the fact.
+</p>
+
+<div class="figure">
+  <img src="images/ch06/06-01.svg" alt="06 01" width="75%">
+  <div class="figure-caption">
+    Figure 1. The blockchain replaces the old spreadsheet and deters tampering.
+  </div>
+</div>
+
+<p class="question">
+  Q2: How does a blockchain help if Lisa tries to remove or replace transactions?
+</p>
+<p class="answer">
+  Each block references the previous block’s ID (hash) and signs a 
+  "merkle root" of its transactions, so tampering would invalidate 
+  signatures in that block and all subsequent blocks. This makes fraud 
+  cryptographically provable.
+</p>
+
+
+<!-- 2. BLOCKCHAIN BASICS -->
+<h2>2. Building the Blockchain</h2>
+
+<p class="question">
+  Q3: What is a "block" in the blockchain?
+</p>
+<p class="answer">
+  A block is a file containing:
+  <ul>
+    <li><strong>Block header</strong>: 
+      - The previous block's hash, 
+      - The merkle root of current transactions, 
+      - A timestamp, 
+      - A block signature (or proof of work in Bitcoin).</li>
+    <li><strong>Transactions</strong> included in this block.</li>
+  </ul>
+</p>
+
+<div class="figure">
+  <img src="images/ch06/06-04.svg" alt="06 04" width="100%">
+  <div class="figure-caption">
+    Figure 4. Each block references the previous block, forming a chain.
+  </div>
+</div>
+
+<p class="question">
+  Q4: How does the block header "commit" to all transactions in the block?
+</p>
+<p class="answer">
+  Through the <em>merkle root</em>, which is a single hash derived from 
+  recursively hashing all transactions in a merkle tree. Changing any 
+  transaction changes the merkle root, invalidating the block.
+</p>
+
+
+<!-- 3. LISA'S ROLE AND SIGNING BLOCKS -->
+<h2>3. Lisa's Role in Creating Blocks</h2>
+
+<p class="question">
+  Q5: What are the steps Lisa takes to create (confirm) a new block?
+</p>
+<p class="answer">
+  <ol>
+    <li><strong>Create a block template:</strong> gather unconfirmed transactions, 
+      form the merkle root, reference the previous block’s ID, 
+      and set a timestamp.</li>
+    <li><strong>Sign the block header:</strong> using her private key (or proof of work in Bitcoin).</li>
+    <li><strong>Publish the block file:</strong> add it to the shared folder (or broadcast over the network).</li>
+  </ol>
+</p>
+
+<div class="figure">
+  <img src="images/ch06/06-06.svg" alt="06 06" width="50%">
+  <div class="figure-caption">
+    Figure 6. Lisa signing a block header.
+  </div>
+</div>
+
+<p class="question">
+  Q6: How does this signature help prevent Lisa from removing transactions later?
+</p>
+<p class="answer">
+  If she changes or removes any transaction in a past block, she must 
+  alter the block header and re-sign it, creating a new version of that block. 
+  Now there are two signed versions of the same height, proving fraud.
+</p>
+
+
+<!-- 4. LIGHTWEIGHT WALLETS (SPV) -->
+<h2>4. Lightweight Wallets (SPV)</h2>
+
+<p class="question">
+  Q7: Why do some wallets prefer not to download the full blockchain?
+</p>
+<p class="answer">
+  For bandwidth and storage reasons. Mobile or low-capacity devices 
+  often use "lightweight" or SPV (Simplified Payment Verification) wallets 
+  that trust a full node to filter and provide relevant transaction data.
+</p>
+
+<div class="figure">
+  <img src="images/ch06/06-15.svg" alt="06 15" width="75%">
+  <div class="figure-caption">
+    Figure 15. Lightweight wallets connect to a full node (or multiple nodes) for relevant data.
+  </div>
+</div>
+
+<p class="question">
+  Q8: How do lightweight wallets verify that a transaction is in a block 
+  without downloading the full block?
+</p>
+<p class="answer">
+  They use a <strong>merkle proof</strong>. The full node sends:
+  <ul>
+    <li>The block header (with merkle root)</li>
+    <li>A partial merkle tree</li>
+    <li>The actual transactions in question</li>
+  </ul>
+  The wallet reconstructs the merkle path and checks if it matches 
+  the block’s merkle root.
+</p>
+
+
+<!-- 5. BLOOM FILTERS & PRIVACY -->
+<h2>5. Bloom Filters & SPV Privacy</h2>
+
+<p class="question">
+  Q9: How do bloom filters help preserve privacy while fetching relevant transactions?
+</p>
+<p class="answer">
+  A bloom filter is a bit array that matches multiple addresses with some 
+  probability. The wallet sends this filter to the full node, which checks 
+  if various parts of each transaction match the filter. Because it can 
+  produce false positives, the node can’t tell exactly which addresses 
+  the wallet is interested in.
+</p>
+
+<div class="figure">
+  <img src="images/ch06/06-17.svg" alt="06 17" width="100%">
+  <div class="figure-caption">
+    Figure 17. Creating a bloom filter for multiple addresses.
+  </div>
+</div>
+
+<p class="question">
+  Q10: What are the downsides of bloom filters?
+</p>
+<p class="answer">
+  <ul>
+    <li><strong>Privacy leaks:</strong> With enough queries or analysis, the node 
+        can often deduce which addresses belong together.</li>
+    <li><strong>Load on full nodes:</strong> They must scan large sections of the blockchain, 
+        potentially causing DoS vulnerabilities.</li>
+  </ul>
+</p>
+
+
+<!-- 6. MERKLE TREES & MERKLE PROOFS -->
+<h2>6. Merkle Trees & Verifying Transaction Inclusion</h2>
+
+<p class="question">
+  Q11: What is a merkle tree in this context?
+</p>
+<p class="answer">
+  A binary tree of hash pairs that merges all transaction hashes into a 
+  single "merkle root". Each transaction is hashed, then concatenated 
+  pairwise, hashed again, and so on until only one hash remains.
+</p>
+
+<div class="figure">
+  <img src="images/ch06/06-23.svg" alt="06 23" width="75%">
+  <div class="figure-caption">
+    Figure 23. Constructing the merkle root from four transactions.
+  </div>
+</div>
+
+<p class="question">
+  Q12: Why not just hash all transactions in one big concatenation?
+</p>
+<p class="answer">
+  A tree structure allows selective proofs (partial merkle proofs) for 
+  only a subset of transactions, without revealing or sending the entire 
+  block of transactions. This saves a lot of data.
+</p>
+
+
+<!-- 7. REMAINING LIMITS ON LISA -->
+<h2>7. Are We Fully Trustless Now?</h2>
+
+<p class="question">
+  Q13: Can Lisa still cheat in any way despite the blockchain preventing removal or alteration?
+</p>
+<p class="answer">
+  She can still <em>censor</em> transactions by refusing to include them in blocks. 
+  She also controls which transactions appear at all. Additionally, 
+  she can revert old transactions by building alternative blocks 
+  (though that reveals her fraud if the blocks are already distributed).
+</p>
+
+<div class="figure">
+  <img src="images/ch06/06-13.svg" alt="06 13" width="100%">
+  <div class="figure-caption">
+    Figure 13. Changing old blocks requires rebuilding and re-signing all subsequent blocks.
+  </div>
+</div>
+
+<p class="question">
+  Q14: What’s next for removing Lisa’s power to censor and controlling who builds blocks?
+</p>
+<p class="answer">
+  We introduce <strong>miners</strong> and <strong>proof of work</strong> in Chapter 7, 
+  distributing the block-building process among many nodes so no single 
+  party can decide unilaterally which transactions to include.
+</p>
+
+
+<!-- 8. SUMMARY / KEY TAKEAWAYS -->
+<h2>8. Key Takeaways / Summary</h2>
+<ul>
+  <li><strong>Blockchain Replaces Spreadsheet:</strong> Blocks are chained via 
+      hashes; tampering one block invalidates all subsequent blocks.</li>
+  <li><strong>Merkle Trees:</strong> Efficiently commits to all transactions 
+      while allowing lightweight proofs for partial sets of transactions.</li>
+  <li><strong>Lightweight Wallets (SPV):</strong> Save bandwidth by only 
+      downloading block headers + merkle proofs. They trust 
+      full nodes for full transaction validation.</li>
+  <li><strong>Bloom Filters:</strong> Provide an obfuscated way to request 
+      relevant transactions, at the expense of partial privacy leaks 
+      and heavier node load.</li>
+  <li><strong>Remaining Trust in Lisa:</strong> She can’t delete transactions 
+      but can still censor them. Proof of work (next chapter) 
+      removes single-authority control.</li>
+  <li><strong>Security vs. Convenience:</strong> Running your own full node 
+      is the only guaranteed way to verify the rules you want; 
+      SPV wallets must trust one or more nodes.</li>
+</ul>
+
+<hr>
+<p><em>End of Study Notes for Chapter 6. We’ve replaced the spreadsheet 
+with a blockchain, ensuring public verifiability of the transaction 
+history and paving the way for decentralized consensus in the upcoming chapters!</em></p>
+
+</body>
+</html>

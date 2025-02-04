@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.15">
+<meta name="author" content="Kalle Rosenbaum">
+<title>Grokking Bitcoin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<link rel="stylesheet" href="style/asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="style/grokking-bitcoin.css">
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>Grokking Bitcoin</h1>
+<div class="details">
+<span id="author" class="author">Kalle Rosenbaum</span><br>
+</div>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#ch03">3. Addresses</a>
+<ul class="sectlevel2">
+<li><a href="#_cookie_eating_habits_disclosed">3.1. Cookie-eating habits disclosed</a></li>
+<li><a href="#_replacing_names_with_public_keys">3.2. Replacing names with public keys</a>
+<ul class="sectlevel3">
+<li><a href="#_new_payment_process">3.2.1. New payment process</a></li>
+</ul>
+</li>
+<li><a href="#_shortening_the_public_key">3.3. Shortening the public key</a>
+<ul class="sectlevel3">
+<li><a href="#_hashing_the_public_key_to_20_bytes">3.3.1. Hashing the public key to 20 bytes</a></li>
+<li><a href="#_why_sha256_and_ripemd160">3.3.2. Why SHA256 and RIPEMD160?</a></li>
+</ul>
+</li>
+<li><a href="#_avoiding_expensive_typing_errors">3.4. Avoiding expensive typing errors</a>
+<ul class="sectlevel3">
+<li><a href="#_where_were_we">3.4.1. Where were we?</a></li>
+<li><a href="#_base58check">3.4.2. Base58check</a></li>
+</ul>
+</li>
+<li><a href="#_back_to_privacy">3.5. Back to privacy</a></li>
+<li><a href="#_recap">3.6. Recap</a>
+<ul class="sectlevel3">
+<li><a href="#_system_changes">3.6.1. System changes</a></li>
+</ul>
+</li>
+<li><a href="#_exercises">3.7. Exercises</a>
+<ul class="sectlevel3">
+<li><a href="#_warm_up">3.7.1. Warm up</a></li>
+<li><a href="#_dig_in">3.7.2. Dig in</a></li>
+</ul>
+</li>
+<li><a href="#_summary">3.8. Summary</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="ch03">3. Addresses</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This chapter covers</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Basic privacy</p>
+</li>
+<li>
+<p>Replacing names with public key hashes</p>
+</li>
+<li>
+<p>Protecting against expensive typing errors</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>By the time you reach the end of this chapter, the cookie token
+spreadsheet will no longer have personal names—you’ll be replacing
+these names with hashes of public keys. This is useful from a privacy
+perspective. No one can easily see who’s paying whom, making it harder
+for others to extract information from the spreadsheet and see how
+many cookies any of your coworkers eat. Lisa also finds this useful
+because she doesn’t have to maintain a table of names and public keys.</p>
+</div>
+<div class="paragraph">
+<p>When switching to public key hashes in the spreadsheet, coworkers will
+no longer use names in their emails to Lisa. They will instead use
+strings of hex code representing public key hashes. This means it will
+be easy to make typing errors. If you make a typing error, your money
+may end up digitally burned!</p>
+</div>
+<div class="paragraph">
+<p>Some coworkers invent cookie token addresses (Bitcoin addresses) that
+protect them from losing money due to typing errors
+(<a href="#fig0301">Figure 1</a>). Cookie token addresses are used between users to pay
+each other, pretty much like an email address, but they aren’t used in
+the spreadsheet.</p>
+</div>
+<div id="fig0301" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-01.svg" alt="03 01" width="75%">
+</div>
+<div class="title">Figure 1. Cookie token addresses are exactly the same as Bitcoin addresses. They’re used mainly by wallet software.</div>
+</div>
+<div class="sect2">
+<h3 id="_cookie_eating_habits_disclosed">3.1. Cookie-eating habits disclosed</h3>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Acme Insurances</div>
+<div class="paragraph">
+<p>This highly unethical insurance company will make serious attempts to
+spy on your habits, to “adjust” your premium.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You and many of your coworkers have health insurance with Acme
+Insurances. Acme has persuaded John to give it a copy of the
+spreadsheet. Acme figures it can adjust premiums or hold workers’
+cookie-eating habits (<a href="#fig0302">Figure 2</a>) against them in an eventual
+insurance dispute.</p>
+</div>
+<div id="fig0302" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-02.svg" alt="03 02" width="50%">
+</div>
+<div class="title">Figure 2. Acme Insurances keeps an eye on Chloe’s cookie-eating habits.</div>
+</div>
+<div class="paragraph">
+<p>Another disturbing fact about the spreadsheet is that every coworker
+can easily look up other coworkers’ balances, as well as their
+cookie-eating habits.</p>
+</div>
+<div class="paragraph">
+<p>The coworkers have asked Lisa to come up with a solution to these
+problems. Otherwise, they’ll stop using the spreadsheet.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_replacing_names_with_public_keys">3.2. Replacing names with public keys</h3>
+<div class="sidebarblock">
+<div class="content">
+<div class="paragraph">
+<p><span class="image"><img src="images/ch03/u03-01.svg" alt="u03 01"></span></p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Lisa has kept the table of names and public keys updated at all times
+since the coworkers started using digital signatures. She’s sick of
+doing this, so she comes up with an idea that will benefit both her and
+her coworkers: Lisa will replace all names in the spreadsheet with their
+respective public keys (<a href="#fig0303">Figure 3</a>).</p>
+</div>
+<div id="fig0303" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-03.svg" alt="03 03" width="75%">
+</div>
+<div class="title">Figure 3. Replacing names with public keys. The spreadsheet is now more unreadable, which is good from a privacy perspective.</div>
+</div>
+<div class="paragraph">
+<p>It’s now hard to see how many cookies Chloe has eaten without knowing
+her public key. If Acme Insurances receives this new spreadsheet, it
+won’t be able to see who the senders and recipients<br>
+are. It will see only the sender and recipient public keys of each
+payment.</p>
+</div>
+<div class="paragraph">
+<p>Lisa can now delete her cumbersome table of names and public keys. But
+when she does this, users should no longer use names when making
+payments. They must instead use the sender’s public key and the
+recipient’s public key (<a href="#fig0304">Figure 4</a>).</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Old style</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-02.svg" alt="u03 02">
+</div>
+</div>
+</div>
+</div>
+<div id="fig0304" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-04.svg" alt="03 04" width="50%">
+</div>
+<div class="title">Figure 4. New-style payment using public keys instead of names</div>
+</div>
+<div class="paragraph">
+<p>The email to Lisa contains a few vital parts:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A message containing the</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Amount</p>
+</li>
+<li>
+<p>Sender public key</p>
+</li>
+<li>
+<p>Recipient public key</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>A signature made with the sender’s private key</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The essential difference is that the payment is now pseudonymous:
+names are replaced with the corresponding public keys. Otherwise, the
+payment looks the same as before.</p>
+</div>
+<div class="sect3">
+<h4 id="_new_payment_process">3.2.1. New payment process</h4>
+<div class="paragraph">
+<p>Suppose a new coworker just started at the company. Her name is Faiza.
+The company wants to send her 100 CT as a welcome gift. How can the
+company send 100 CT to Faiza?</p>
+</div>
+<div class="paragraph">
+<p>First, the company needs the recipient’s—Faiza’s—public key. Faiza
+hasn’t used cookie tokens yet, so she needs to create a key pair and
+give the public key to the sender—the company—as <a href="#fig0305">Figure 5</a> shows.</p>
+</div>
+<div id="fig0305" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-05.svg" alt="03 05" width="100%">
+</div>
+<div class="title">Figure 5. Faiza creates her public key and gives it to the company. The company creates a payment with Faiza’s public key as the recipient.</div>
+</div>
+<div class="paragraph">
+<p>Faiza creates a private and a public key, following the same process
+described in <a href="#improving-cookie-token-security">[improving-cookie-token-security]</a>, but she doesn’t give
+her public key to Lisa. Now that Lisa doesn’t have the table of names
+and public keys, there’s no longer any point in giving her the
+public key. She doesn’t need it. Instead, Faiza gives the public key
+to the entity that wants to pay her cookie tokens—the company.</p>
+</div>
+<div class="paragraph">
+<p>The company creates a message asking Lisa to move 100 CT from
+<code>037e944a…36de9496</code> to <code>029a726c…ad8f436d</code>. It then digitally signs
+the message and sends it to Lisa. Lisa uses</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The message</p>
+</li>
+<li>
+<p>The sender’s public key</p>
+</li>
+<li>
+<p>The signature</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Lisa In Bitcoin</div>
+<div class="paragraph">
+<p>Lisa is performing the same duties with cookie token payments that a
+Bitcoin miner would do with Bitcoin payments.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>to verify that the message is signed with the private key belonging to
+the sender’s public key. She also verifies that the sender’s public key
+has enough funds in the spreadsheet. She does this the same way she did
+when the spreadsheet contained names—she searches for the sender’s
+public key and calculates the balance.</p>
+</div>
+<div class="paragraph">
+<p>Lisa has never seen the recipient’s public key before, but she doesn’t
+care. She cares only that the sender has the money to spend and that the
+message is correctly signed. She’ll write into the spreadsheet’s
+recipient column whatever the message asks her to write.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-03.svg" alt="u03 03">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Faiza sees the new row with her public key in the To column. It gives
+her a warm, fuzzy feeling. She can now spend her cookie tokens as she
+pleases. Faiza didn’t have to bother Lisa with her public key, saving
+Lisa a lot of work.</p>
+</div>
+<div class="paragraph">
+<p>Let’s summarize what’s happened so far:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Names have been replaced with public keys in the spreadsheet.</p>
+</li>
+<li>
+<p>Lisa has thrown away the table of names and public keys.</p>
+</li>
+<li>
+<p>Payments are made using public keys instead of names to denote sender
+and recipient.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These changes have improved privacy and simplified Lisa’s work. At the
+end of this chapter, we’ll discuss more about how to further improve
+privacy.</p>
+</div>
+<div class="paragraph">
+<p>The email to Lisa in this example probably reveals, <em>to Lisa</em>, who the
+sender is (the company, in this case) because of the From field of the
+email. For now, we can assume Lisa doesn’t reveal or use this personal
+information in any way. We use email in this example in place of
+Bitcoin’s peer-to-peer network. The Bitcoin network, discussed in detail
+in <a href="#ch08">[ch08]</a>, doesn’t use any personal information.</p>
+</div>
+<div class="paragraph">
+<p>Please take a moment to think about what Acme Insurances can now figure
+out from the spreadsheet. What information can it get if it figures out
+the name of the sender or recipient of <em>one</em> payment? It will be able to
+identify all payments that person has made.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_shortening_the_public_key">3.3. Shortening the public key</h3>
+<div class="paragraph">
+<p>Using public keys in the spreadsheet improved privacy, but such keys
+take up a lot of space compared to names. The name “John” takes 4 bytes
+in the spreadsheet, whereas a public key takes 33 bytes. Keeping the
+spreadsheet as small as possible is important because a smaller
+spreadsheet means faster downloading for coworkers wanting to check
+their balance; it also takes less space on Lisa’s hard drive.</p>
+</div>
+<div class="sect3">
+<h4 id="_hashing_the_public_key_to_20_bytes">3.3.1. Hashing the public key to 20 bytes</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-04.svg" alt="u03 04">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Among the coworkers, some developers think they can replace 33-byte
+public keys with something shorter while still preserving enough
+security. They suggest replacing each public key in the cookie token
+spreadsheet with a cryptographic hash of the public key. This shortens
+senders and recipients in the spreadsheet but also protects users’
+money in the event of a flaw in the public key derivation function, as
+we’ll see later. The hashing isn’t made with a single cryptographic
+hash function but with two different cryptographic hash functions, as
+<a href="#fig0306">Figure 6</a> illustrates. We’ll discuss the reason for using two hash
+functions in the next section.</p>
+</div>
+<div id="fig0306" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-06.svg" alt="03 06" width="100%">
+</div>
+<div class="title">Figure 6. Replacing the public keys with the RIPEMD160 hash of the SHA256 hash of the public key</div>
+</div>
+<div class="paragraph">
+<p>The public key is first hashed with SHA256, which you should be
+familiar with from the previous chapter. The output of this
+cryptographic hash function is then hashed with RIPEMD160, a
+cryptographic hash function that outputs a 160-bit (20-byte)
+number. We call this final hash the <em>public key hash</em> (PKH). All
+public keys in the spreadsheet are replaced with their respective
+PKHs.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Old style payment</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-05.svg" alt="u03 05">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The payment process now differs from when Faiza received her 100 CT from
+the company. Suppose John wants to buy a cookie (<a href="#fig0307">Figure 7</a>).</p>
+</div>
+<div id="fig0307" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-07.svg" alt="03 07" width="75%">
+</div>
+<div class="title">Figure 7. John buys a cookie. The sender is still a public key, but the recipient is a PKH instead of public key. Lisa needs to create the PKH from the sender’s public key to verify the balance and execute the payment.</div>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">p2pkh</div>
+<div class="paragraph">
+<p>Most payments in Bitcoin are made with a PKH as the recipient. This
+type is often called <em>pay-to-public-key-hash</em> (p2pkh), but other
+payment types exist as well.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>First, the message to Lisa is changed a bit. John must use the cafe’s
+PKH—which was previously a public key—as the recipient. The sender is
+still a public key in the message because that public key is needed to
+verify the signature. Lisa doesn’t keep people’s public keys around
+anymore.</p>
+</div>
+<div class="paragraph">
+<p>Second, because the spreadsheet now contains PKHs, Lisa must calculate
+the PKH from the sender’s public key to check the sender’s balance and
+be able to enter the payment into the spreadsheet.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_why_sha256_and_ripemd160">3.3.2. Why SHA256 and RIPEMD160?</h4>
+<div class="paragraph">
+<p>Using RIPEMD160 as the last cryptographic hash function is a deliberate
+choice to make the PKHs shorter. Compare the output from SHA256 with the
+output from RIPEMD160:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>SHA256:
+85ae273f0aa730eddf2285d3f3ab071eb29caba1e428db90e6dfbd71b8e1e918
+RIPEMD160:
+5f2613791b36f667fdb8e95608b55e3df4c5f9eb</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It’s a well-balanced trade-off between security and size.</p>
+</div>
+<div class="paragraph">
+<p>But why have two different cryptographic hash functions? We don’t
+really know why this scheme was chosen for Bitcoin because its
+inventor, Satoshi Nakamoto, has stopped corresponding with the Bitcoin
+community.  We can only speculate. Instead, let’s discuss some of the
+scheme’s properties.</p>
+</div>
+<div class="paragraph">
+<p>If either hash function isn’t pre-image-resistant, the other still is.
+This means if you can calculate an input to RIPEMD160 that gives a
+certain PKH output, you still need to pre-image attack SHA256 (with
+about 2<sup>255</sup> guesses) to find the public key. Likewise, if you can
+calculate an input to SHA256 that gives a certain output, you first
+need to pre-image attack RIPEMD160 before you can use that pre-image
+to calculate the public key.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-06.svg" alt="u03 06">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>On the other hand, if it turns out that the output set of either
+cryptographic hash function is smaller than anticipated, then the
+security of the combined hash-function chain suffers. To make this
+clearer, pretend SHA256 has only 100 possible output values. You can
+steal money from anyone by trying different random private keys and
+calculating the corresponding PKHs. If a PKH matches your target,
+you’ve found a private key you can steal the money with. On average,
+you’d only have to test 50 different private keys to steal from
+one PKH. This property gives the worst of both worlds: if either of
+the two functions is weak, then the whole chain is weak. The
+probability that any function has this flaw is small. If any such flaw
+exists, the reduction in the output set likely isn’t significant
+enough to endanger security in practice. Remember, we’ve yet to find
+one single collision in any of these cryptographic hash functions.</p>
+</div>
+<div class="paragraph">
+<p>Another thing to note is that different organizations developed the
+two cryptographic hash functions. RIPEMD160 was developed at a
+European university in open collaboration with a broad community of
+cryptographers. SHA256 was developed by the US National Security
+Agency (NSA). Both are considered secure, and both have been subject
+to scrutiny from a large number of people.</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Has privacy improved?</div>
+<div class="paragraph">
+<p>No.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now that we’ve strengthened the security of the cookie token
+spreadsheet, let’s think about privacy again. Has this improved privacy?
+Is it harder for Acme Insurances to figure out information about who’s
+paying whom now compared to when we used public keys in the spreadsheet?</p>
+</div>
+<div class="paragraph">
+<p>The answer is no. There is practically a one-to-one correspondence
+between the public keys and the PKHs. Using PKHs doesn’t hide personal
+information any more than using plain public keys.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_avoiding_expensive_typing_errors">3.4. Avoiding expensive typing errors</h3>
+<div class="paragraph">
+<p>When Lisa verifies a payment before executing it, she doesn’t care who
+the recipient is or if it’s even an existing recipient. She’ll put into
+the recipient column of the spreadsheet whatever the payer asks her to.
+She can’t even know if a recipient is valid or not, because she no
+longer knows everyone’s public keys.</p>
+</div>
+<div class="paragraph">
+<p>This is convenient for Lisa, but it can cause people to lose money if
+they aren’t careful. Imagine once again that John wants to buy a cookie.
+This time, he’s not careful enough when writing the message, as <a href="#fig0308">Figure 8</a> shows.</p>
+</div>
+<div id="fig0308" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-08.svg" alt="03 08" width="75%">
+</div>
+<div class="title">Figure 8. John makes a typo in the recipient in the email to Lisa. What now?</div>
+</div>
+<div class="paragraph">
+<p>He makes a typing error in the recipient PKH. The last character is <code>d</code>
+when it should have been <code>c</code>. What happens now?</p>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Any recipient goes</div>
+<div class="paragraph">
+<p>There is no “wrong” recipient PKH. Lisa adds any recipient as long as
+the signature is valid.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>John doesn’t notice the error and happily signs the message and sends
+the email to Lisa. Lisa verifies the signature, which verifies fine,
+and calculates the sender’s PKH. She doesn’t care about the
+recipient. She inserts a new row in the spreadsheet paying from
+<code>5f261379…f4c5f9eb</code> to <code>87e3d169…8393b1cd</code>.</p>
+</div>
+<div class="paragraph">
+<p>Then she considers herself done, moving on to other interesting tasks.
+The cafe owner, who is searching for his PKH in the spreadsheet,
+doesn’t see an incoming payment. John stands at the counter in the
+cafe yelling at the cafe owner that he <em>did</em> send money, so “Give me
+the freakin’ cookie!” The cafe owner refuses. John takes a close look
+at the spreadsheet and searches for his PKH. He finds the one he just
+made and realizes his spelling mistake.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="paragraph">
+<p><span class="image"><img src="images/ch03/u03-07.svg" alt="u03 07"></span></p>
+</div>
+</div>
+</div>
+<div class="paragraph important">
+<p>John has sent money to a “public key hash” for which there is no known
+private key. No one will ever be able to spend those 10 CT—not the
+cafe, not John, nobody. John has just digitally burned 10 CT.</p>
+</div>
+<div class="paragraph">
+<p>Unfortunately, this will probably happen again and again in the future
+if nothing is done to prevent it. The problem can happen at any point
+from when the cafe owner reads his own PKH to give to John to when
+John writes his message before signing it. You could argue that Lisa
+could also make this mistake when she updates the spreadsheet, but
+she’s so thorough that this would <em>never</em> happen. She’s just too good
+at what she’s doing. Lisa will never cause someone else’s funds to be
+burned.</p>
+</div>
+<div class="sect3 periscope">
+<h4 id="_where_were_we">3.4.1. Where were we?</h4>
+<div class="paragraph">
+<p>This chapter deals with Bitcoin addresses. To remind you where this
+all fits into Bitcoin, remember the diagram from <a href="#ch01">[ch01]</a>, shown again
+in <a href="#fig0309">Figure 9</a>.</p>
+</div>
+<div id="fig0309" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-09.svg" alt="03 09" width="50%">
+</div>
+<div class="title">Figure 9. Bitcoin addresses</div>
+</div>
+<div class="paragraph">
+<p>Toward the end of this chapter, we’ll end up with Bitcoin (cookie
+token) addresses. We’ve just replaced the names in the spreadsheet
+with PKHs.  We’ll now get to <em>Bitcoin addresses</em>. A Bitcoin address
+is a <em>converted PKH</em>—that is, it’s a PKH written in a way more
+suitable for human users and safe against spelling errors. The PKH is
+sent to Lisa (or Bitcoin nodes), but the address is what users see and
+give to each other.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_base58check">3.4.2. Base58check</h4>
+<div class="paragraph">
+<p>Among the coworkers, the security-oriented people discuss the problem
+with typos and come up with the idea of <em>cookie token addresses</em>. A
+cookie token address is a PKH <em>encoded</em> to detect typing errors. The
+PKH can be converted back and forth between this encoding and plain
+byte format.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Bitcoin addresses</div>
+<div class="paragraph">
+<p>Cookie token addresses are exactly the same as the most common version
+of Bitcoin addresses. Other types of Bitcoin addresses are available,
+however.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Suppose Faiza feels sorry for John and wants to give him 20 CT from
+her 100 CT to ease his pain. She doesn’t want to make the same mistake
+John did, so she asks him for his cookie token address. John creates
+this by encoding his PKH with a function called <em>base58check</em>
+(<a href="#fig0310">Figure 10</a>).</p>
+</div>
+<div id="fig0310" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-10.svg" alt="03 10" width="50%">
+</div>
+<div class="title">Figure 10. Overview of base58check encoding, which transforms a PKH into a cookie token address</div>
+</div>
+<div class="sidebarblock gbinfo">
+<div class="content">
+<div class="title">Who uses cookie token addresses?</div>
+<div class="paragraph">
+<p>Cookie token addresses are employed only between users to safely
+transmit a PKH. Lisa never sees them.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The result is John’s cookie token address: <code>19g6oo8f…gCenRBPD</code>. John
+hands this address to Faiza, who then makes a payment following the
+process in <a href="#fig0311">Figure 11</a>.</p>
+</div>
+<div class="paragraph">
+<p>The payment process changes for the payer, but nothing changes for Lisa.
+Faiza will base58check <em>decode</em> John’s address into a PKH. This decoding
+ensures that no typing errors were made in the address.</p>
+</div>
+<div id="fig0311" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-11.svg" alt="03 11" width="50%">
+</div>
+<div class="title">Figure 11. Faiza makes a payment to John’s cookie token address. She decodes the address into a PKH, verifying that the address isn’t misspelled.</div>
+</div>
+<div class="paragraph">
+<p>As mentioned previously, a PKH can be converted to an address and back
+to a PKH. It is <em>not</em> a one-way function. It’s just different ways to
+<em>represent</em> the PKH, either as a series of bytes or as an address
+(<a href="#fig0312">Figure 12</a>).</p>
+</div>
+<div id="fig0312" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-12.svg" alt="03 12" width="50%">
+</div>
+<div class="title">Figure 12. The PKH can be encoded into an address and decoded back into the PKH.</div>
+</div>
+<div class="paragraph">
+<p>The email to Lisa is exactly the same as before. Only users employ the
+cookie token address. It isn’t part of Lisa’s validation process or
+the spreadsheet in any way.</p>
+</div>
+<div class="sect4">
+<h5 id="_base58check_encoding">Base58check encoding</h5>
+<div class="paragraph">
+<p>Let’s see how this mysterious base58check encoding works
+(<a href="#fig0313">Figure 13</a>).  First, a version is added before the PKH. The people
+who came up with the idea of cookie token addresses wanted to make
+future upgrades to the address format easy. Right now, only one
+version of cookie token addresses is available. This version is a
+single 0 byte.</p>
+</div>
+<div id="fig0313" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-13.svg" alt="03 13" width="100%">
+</div>
+<div class="title">Figure 13. Base58check encoding John’s PKH. A version is added to the hash, and then a checksum is created and appended to the versioned hash. Finally, the checksummed, versioned hash is base58 encoded.</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-09.svg" alt="u03 09">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>To detect typing errors, a <em>checksum</em> is added. This checksum is
+calculated from the versioned PKH. To create a checksum, base58check
+hashes the versioned PKH with double SHA256. This means it’s first
+hashed with SHA256, and the resulting hash is hashed again with
+SHA256.  Take the first 4 bytes of the second hash, and let those 4
+bytes be the checksum. This checksum is then appended to the
+versioned PKH. You’ll soon see how this checksum protects users from
+typing errors. Be patient!</p>
+</div>
+<div class="paragraph">
+<p>You started with a PKH of 20 bytes (40 hex characters). But now that
+you’ve added a version and a checksum, you have 25 bytes (50 hex
+characters). To make up for this increase, you’ll encode the 25 bytes
+in a more compact way than hexadecimal encoding.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_using_a_more_compact_encoding">Using a more compact encoding</h5>
+<div class="paragraph">
+<p>Hex encoding is an inefficient way to represent data bytes. It
+requires 2 characters for each byte. We use only 16 characters, where
+each character represent 4 bits, <code>0000</code> to <code>1111</code>.</p>
+</div>
+<div class="paragraph">
+<p>Many encoding schemes exist that use more characters to represent data.
+The most widely known is base64, in which each character represents 6
+bits of data; to do this, the scheme needs more characters than just
+letters and digits. Base64 uses the following alphabet:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The character <code>A</code> represents the bits <code>000000</code>, <code>B</code> represents
+<code>000001</code>, and the character <code>/</code> represents <code>111111</code>. This is a nice,
+easy, compact way to represent data with human-readable
+characters. I’ve already used base64-encoded data several times in
+this book to represent signatures.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-10.svg" alt="u03 10">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>But base64 doesn’t quite fit the bill for cookie token addresses. We
+need an encoding that doesn’t just detect typing errors when they happen
+but minimizes the risk of making them. Notice how some characters look
+similar in some fonts, like <code>lI</code> (lowercase L, capital I) and <code>0O</code> (zero
+and capital O). We also need a format that users can easily copy and
+paste, meaning special characters such as <code>+</code> and <code>/</code> shouldn’t be
+allowed—they’ll prevent us from marking the whole address by
+double-clicking it. Removing those six characters reduces the
+possibility of typing errors. But now we have only 58 characters left,
+so we need another type of encoding.</p>
+</div>
+<div class="paragraph">
+<p>This new way to encode data is called <em>base58</em> because the alphabet is
+the following 58 characters:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz</pre>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+If you feel put off by this low-level base58 mumbo jumbo, you can skip
+to <a href="#base58check-decoding">Section 3.4.2.3</a> and just accept that base58 is a way to encode
+and decode data. For the rest of you, please continue. It’s fun.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>In base64, each character represents exactly 6 bits, which makes it
+straightforward to encode and decode data. But with base58, each
+character represents slightly less than 6 bits but more than 5
+bits. We need to encode data differently.</p>
+</div>
+<div class="paragraph">
+<p>Let’s get back to the example in which John creates his address. He’s
+just added a version and a checksum. Now it’s time to encode the 25
+bytes into the final result: the address (<a href="#base58-encoding">Figure 14</a>).</p>
+</div>
+<div id="base58-encoding" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-14.svg" alt="03 14" width="75%">
+</div>
+<div class="title">Figure 14. Encoding John’s versioned and checksummed PKH with base58. The essential part is where you divide the number by 58 and keep the remainders, which are then mapped one by one in the lookup table.</div>
+</div>
+<div class="paragraph">
+<p>The overall strategy of base58 is to treat the data as a huge number
+that you divide by 58 over and over until the quotient is 0; you keep
+the remainders of every division. You look up each remainder in the
+lookup table and append a <code>1</code> last for each leading 0 byte in the
+input.  The string is finally reversed, and the result is John’s
+cookie token address. Note that all cookie token addresses, not just
+John’s, will start with a <code>1</code>. This is because the version byte is 0,
+which is encoded by the character <code>1</code>.</p>
+</div>
+<div class="paragraph">
+<p>You can decode base58-encoded data such as John’s address back to the
+original input of the base58 encoding. I’ll leave this as an exercise
+for the interested reader.</p>
+</div>
+<div class="paragraph">
+<p>Note that base58 encoding is nothing new. It’s a generic way to
+convert a decimal number to any other base. You can use the same
+algorithm to convert to base3, instead—divide by 3 instead
+of 58. Maybe you’d also like to change the lookup table to map 0 to 0,
+1 to 1, and 2 to 2 to get the characters you’re used to. For example,
+write 17 in base 3:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[17=5*3+2 \\
+5=1*3+2 \\
+1=0*3+1\]
+</div>
+</div>
+<div class="paragraph">
+<p>Then, look up the remainders in the lookup table (same digits as the
+ones you convert), and you’ll get <code>2 2 1</code>. Reverse that to get the final
+result: <code>1 2 2</code>. Verify that it’s correct as follows:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[1*3^2+2*3^1+2*3^0=9+6+2=17\]
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="base58check-decoding">Base58check decoding</h5>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-11.svg" alt="u03 11">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>John has just created his cookie token address by base58check encoding
+his PKH. He’s given the address to Faiza so she can send him 20 CT. Now,
+Faiza needs to write a message to Lisa. To do this, she needs John’s
+PKH. The great thing about base58check encoding is that the process can
+be reversed so you can get the PKH from the address while simultaneously
+checking for typing errors (<a href="#fig0315">Figure 15</a>).</p>
+</div>
+<div id="fig0315" class="imageblock">
+<div class="content">
+<img src="images/ch03/03-15.svg" alt="03 15" width="100%">
+</div>
+<div class="title">Figure 15. Base58check decoding is basically done by reversing the base58check encoding. Typing errors are detected when the checksums don’t match.</div>
+</div>
+<div class="paragraph">
+<p>Faiza takes John’s cookie token address and base58 decodes it. Then,
+she removes the checksum and uses the remaining part, the versioned
+PKH, to calculate the checksum again. The newly calculated checksum
+and the just-removed checksum must match. Otherwise, a typing error
+has occurred, in which case Faiza won’t create the message. She’ll
+know the address was corrupted somewhere along the way and refrain
+from sending an email to Lisa. She’ll verify that she entered the
+address correctly and that John gave her the correct address to learn
+where it went wrong.</p>
+</div>
+<div class="paragraph">
+<p>How safe is the checksum? Suppose a typing error occurred in an
+address.  What’s the probability that the checksum won’t detect the
+error? The checksum is 4 bytes, which corresponds to 2<sup>32</sup> ≈ 4.3
+billion values.  The chance is about 1 in 4.3 billion that base58check
+fails to detect the typing error. It’s pretty safe.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_back_to_privacy">3.5. Back to privacy</h3>
+<div class="paragraph">
+<p>Although privacy improved when we replaced names with PKHs, the
+spreadsheet still reveals some information that Acme Insurances finds
+useful.</p>
+</div>
+<div class="sidebarblock inbitcoin">
+<div class="content">
+<div class="title">Forensics</div>
+<div class="paragraph">
+<p>This technique is often used in Bitcoin—for example, during crime
+investigations.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, Acme can probably figure out the cafe has the PKH
+<code>87e3d169…8393b1cc</code> because a lot of 10 CT payments have been made
+to this PKH. From this, Acme will be able to see which PKHs are making
+the most 10 CT payments to that PKH. Let’s say Acme talks to Faiza and
+asks her for information about her recent payments. She’s made only one
+payment so far, the one to John. Faiza, unaware of why Acme is asking
+these questions, discloses that the transaction is for John.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Dear John,</div>
+<div class="paragraph">
+<p>It has come to our attention that you live an unhealthy life. We have
+therefore promoted you to a higher risk category. Congratulations.</p>
+</div>
+<div class="paragraph">
+<p>Sincerely,<br>
+Acme Insurances</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>A week later, John receives a letter from Acme politely informing him
+that he’s been promoted to a higher risk category, and his insurance
+premium has been adjusted accordingly.</p>
+</div>
+<div class="paragraph important">
+<p>Some privacy issues obviously remain. Luckily, users can create as
+many addresses they like. For example, the cafe could create a unique
+address for every incoming payment. And John could create a brand-new
+cookie token address the next time he accepts cookie tokens from
+Faiza.</p>
+</div>
+<div class="paragraph">
+<p>Using unique addresses for each payment will make it harder for Acme
+to extract information from the cookie token spreadsheet, because they
+won’t be able to tell which payments belong to the same person.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_recap">3.6. Recap</h3>
+<div class="paragraph">
+<p>This chapter started with replacing the names in the spreadsheet with
+users’ respective PKHs.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-12.svg" alt="u03 12" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>Then, we used base58check to create an address from a PKH. Let’s put the
+pieces together and look at the whole cookie token address-creation
+process from random number generator to the address.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-13.svg" alt="u03 13">
+</div>
+</div>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-14.svg" alt="u03 14" width="75%">
+</div>
+</div>
+<div class="paragraph">
+<p>Faiza makes sure no typing errors happen by base58check decoding the
+address before signing the message.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-15.svg" alt="u03 15" width="50%">
+</div>
+</div>
+<div class="sect3">
+<h4 id="_system_changes">3.6.1. System changes</h4>
+<div class="paragraph">
+<p>The concept table (<a href="#tab0301">Table 1</a>) isn’t updated in this chapter. Cookie
+token addresses are exactly what Bitcoin uses, so we haven’t
+introduced any concepts that differ from Bitcoin.</p>
+</div>
+<table id="tab0301" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 1. Nothing new in the concept table</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cookie Tokens</th>
+<th class="tableblock halign-left valign-top">Bitcoin</th>
+<th class="tableblock halign-left valign-top">Covered in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 cookie token</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 bitcoin</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch02">[ch02]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The blockchain</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch06">[ch06]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Email to Lisa</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A transaction</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch05">[ch05]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A row in the spreadsheet</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A transaction</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch05">[ch05]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lisa</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A miner</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#ch07">[ch07]</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-16.svg" alt="u03 16">
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Thanks to PKH and cookie token addresses, Lisa can ditch her table of
+public keys. You can add PKH and addresses to your toolbox for later
+use, and we release version 3.0 of the cookie token system
+(<a href="#tab0302">Table 2</a>).</p>
+</div>
+<table id="tab0302" class="tableblock frame-all grid-all fit-content">
+<caption class="title">Table 2. Release notes, cookie tokens 3.0</caption>
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Feature</th>
+<th class="tableblock halign-left valign-top">How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><span class="image gbnew"><img src="images/common/new.svg" alt="new"></span>3.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Safe from expensive typing errors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cookie token addresses.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privacy improvements</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A PKH instead of a personal name is stored in the spreadsheet.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Secure payments</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Digital signatures solve the problem with imposters.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">1.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Simple payment system</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relies on Lisa being trustworthy and knowing everyone’s face.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Finite money supply</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7,200 new CT are rewarded to Lisa daily; the amount halves every four years.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_exercises">3.7. Exercises</h3>
+<div class="sect3">
+<h4 id="_warm_up">3.7.1. Warm up</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The PKH is shorter than the public key—only 160 bits. We made it
+shorter using RIPEMD160. Why do you want it to be shorter? There are
+two good reasons.</p>
+</li>
+<li>
+<p>Base58check encoding is used to create a cookie token (Bitcoin)
+address from a PKH. Is it possible to reverse this process to create a
+PKH from an address?</p>
+</li>
+<li>
+<p>When is base58check decoding used, and by whom?</p>
+</li>
+<li>
+<p>Base58 encode the two hex bytes <code>0047</code>. Use the following diagram.
+You may skip this exercise if you didn’t read the section on base58
+encoding.</p>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-17.svg" alt="u03 17">
+</div>
+</div>
+</li>
+<li>
+<p>What in an address makes it mostly safe from typing errors?</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_dig_in">3.7.2. Dig in</h4>
+<div class="sidebarblock">
+<div class="content">
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-18.svg" alt="u03 18">
+</div>
+</div>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic" start="6">
+<li>
+<p>Imagine that John wants a cookie from the cafe. He has two
+addresses: @<sub>1</sub> with a balance of 5 CT, and @<sub>2</sub> with 8 CT. His total
+balance is 13 CT, so he should be able to afford 10 CT for a cookie.
+Give an example of how he could pay 10 CT to the cafe.</p>
+</li>
+<li>
+<p>Is it possible to deduce what cookie token addresses were involved
+in a certain payment by looking at the following spreadsheet?</p>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-19.svg" alt="u03 19" width="100%">
+</div>
+</div>
+</li>
+<li>
+<p>Is it possible to deduce what public keys were involved in a certain
+payment by looking at just the spreadsheet?</p>
+</li>
+<li>
+<p>Suppose everybody always used unique addresses for each
+payment. What information from the spreadsheet could Acme use to
+roughly identify the cafe’s addresses?</p>
+</li>
+<li>
+<p>Suppose there was a serious flaw in the public key derivation
+function, so anyone could calculate the private key from a public key.
+What prevents a bad guy from stealing your money in this scenario?</p>
+<div class="imageblock">
+<div class="content">
+<img src="images/ch03/u03-20.svg" alt="u03 20">
+</div>
+</div>
+</li>
+<li>
+<p>Suppose there was a serious flaw in RIPEMD160, so anyone could
+easily figure out a 256-bit pre-image of the PKH. This would mean it
+wasn’t pre-image resistant. What prevents a bad guy from stealing your
+money in this scenario?</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_summary">3.8. Summary</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Privacy is important for you, not just for criminals.</p>
+</li>
+<li>
+<p>Using PKHs instead of personal names as recipients for payments is
+important for privacy and more secure.</p>
+</li>
+<li>
+<p>Encoding a PKH as a Bitcoin address, or cookie token address,
+reduces the risk of sending money into the void, thanks to the
+checksum in the address.</p>
+</li>
+<li>
+<p>Only users care about Bitcoin addresses. The Bitcoin network, or
+Lisa, deals with plain PKHs.</p>
+</li>
+<li>
+<p>You can have as many Bitcoin addresses as you like. Using multiple
+addresses, preferably one per received payment, improves your privacy.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2021-05-19 10:45:14 +0200
+</div>
+</div>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</body>
+</html>

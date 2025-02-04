@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Study Notes: Chapter 7 (Grokking Bitcoin)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    .question {
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .answer {
+      margin-left: 1em;
+    }
+    .figure {
+      margin: 1em 0;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+    }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Study Notes: Chapter 7 – Proof of Work</h1>
+
+<!-- 1. MULTIPLE MINERS / REPLACING LISA -->
+<h2>1. From Lisa to Multiple Miners</h2>
+
+<p class="question">
+  Q1: Why is relying on one “Lisa” problematic with respect to transaction censorship?
+</p>
+<p class="answer">
+  With one single miner (Lisa), that miner becomes a central authority 
+  who can censor transactions, for example, refusing to include 
+  payments for cookies. Multiple miners allow a user to send 
+  transactions to <em>any</em> of them, making censorship much harder.
+</p>
+
+<p class="question">
+  Q2: How do we replace Lisa’s single authority with multiple block producers?
+</p>
+<p class="answer">
+  By letting <strong>anybody</strong> become a miner. Each miner competes to 
+  produce the next block, so no single person can decide unilaterally 
+  what transactions to include.
+</p>
+
+<div class="figure">
+  <img src="images/ch07/07-01.svg" alt="07 01" width="75%">
+  <div class="figure-caption">
+    Figure 1. Proof of work allows multiple miners to secure the blockchain without relying on a single central authority.
+  </div>
+</div>
+
+
+<!-- 2. LUCKY NUMBERS VS. PROOF OF WORK -->
+<h2>2. Lucky Numbers vs. Proof of Work</h2>
+
+<p class="question">
+  Q3: What was the "lucky number" approach, and why was it naive?
+</p>
+<p class="answer">
+  The lucky number approach had each miner pick random numbers hoping 
+  to “draw” a low-enough number to publish a block. It was naive because 
+  no one could prove the miner was being honest in its number drawing. 
+  Cheating was undetectable.
+</p>
+
+<p class="question">
+  Q4: What does proof of work do differently?
+</p>
+<p class="answer">
+  Instead of trusting random-number drawing, miners must find a block 
+  header whose double SHA256 <em>hash</em> is below a certain <strong>target</strong>. 
+  Verifiers can easily confirm a valid block header by re-hashing. 
+  It's proof the miner did the required (hard) work.
+</p>
+
+<div class="figure">
+  <img src="images/ch07/07-10.svg" alt="07 10" width="100%">
+  <div class="figure-caption">
+    Figure 2. Replacing “draw random numbers” with “hash the block header repeatedly” until the hash < target.
+  </div>
+</div>
+
+
+<!-- 3. DIFFICULTY & TARGET ADJUSTMENTS -->
+<h2>3. Difficulty and Target Adjustments</h2>
+
+<p class="question">
+  Q5: Why do we need to adjust the proof-of-work target every so often?
+</p>
+<p class="answer">
+  More miners join, or miners add more hardware, changing the total 
+  hashrate. If hashrate grows, blocks are found too quickly, accelerating 
+  money creation. Difficulty adjustments keep the block time ~10 minutes.
+</p>
+
+<p class="question">
+  Q6: How is the new target calculated?
+</p>
+<p class="answer">
+  After each 2,016-block period (“retarget period”), the protocol 
+  checks how long that period took compared to the intended two weeks 
+  (14 days). It adjusts the target proportionally (with limits of ×4 or ÷4 
+  at most) to bring the block production rate back to ~10 minutes.
+</p>
+
+<div class="figure">
+  <img src="images/ch07/07-22.svg" alt="07 22" width="75%">
+  <div class="figure-caption">
+    Figure 3. The block target is recalculated to maintain the 10-minute average block time.
+  </div>
+</div>
+
+
+<!-- 4. REORG, FORKS, AND SPLITS -->
+<h2>4. Splits, Forks, and the Strongest Chain</h2>
+
+<p class="question">
+  Q7: How do miners occasionally produce blocks on different branches?
+</p>
+<p class="answer">
+  Sometimes two miners find a valid proof of work at nearly the same 
+  time. Each publishes its block. Now there are two valid blocks at 
+  the same height—a <em>split</em>.
+</p>
+
+<p class="question">
+  Q8: How is such a split resolved?
+</p>
+<p class="answer">
+  Eventually another block is found and published atop one of these 
+  competing blocks. Whichever branch becomes longer (or has the most 
+  accumulated proof of work) is accepted by all miners. The shorter 
+  branch is abandoned (“becomes stale”).
+</p>
+
+
+<!-- 5. DOUBLE-SPEND ATTACKS & SECURITY -->
+<h2>5. Security: Double-Spend Attacks</h2>
+
+<p class="question">
+  Q9: How can a miner with some hashrate attempt a double spend?</p>
+<p class="answer">
+  By secretly creating a competing chain containing a conflicting 
+  transaction. Once the victim sees confirmations on the honest chain 
+  and hands over goods, the attacker tries to release the secret 
+  chain that excludes (or conflicts with) the honest transaction, 
+  reversing it.
+</p>
+
+<p class="question">
+  Q10: Why do merchants wait for multiple confirmations?</p>
+<p class="answer">
+  The more blocks confirm a transaction, the harder it is for an attacker 
+  to produce a stronger private chain from that transaction's ancestor 
+  block onward—especially if the attacker has < 50% of the total hashrate.
+</p>
+
+<div class="figure">
+  <img src="images/ch07/07-25.svg" alt="07 25" width="75%">
+  <div class="figure-caption">
+    Figure 4. Two conflicting transactions for the same UTXO. One is honest; one is secret, for a double spend.
+  </div>
+</div>
+
+
+<!-- 6. TRANSACTION FEES & INCENTIVES -->
+<h2>6. Transaction Fees and Miners' Incentives</h2>
+
+<p class="question">
+  Q11: Why do transactions include fees?
+</p>
+<p class="answer">
+  <ul>
+    <li>To reward miners for including them (offsetting the risk of losing 
+        the “block race” by having a bigger block).</li>
+    <li>To compete against other transactions for limited block space 
+        (a fee market).</li>
+    <li>Eventually, when block subsidies drop to zero, fees become the 
+        main incentive to keep miners mining.</li>
+  </ul>
+</p>
+
+<p class="question">
+  Q12: How does a miner collect these transaction fees?</p>
+<p class="answer">
+  By adding them to the coinbase transaction. The total output of the 
+  coinbase is the block subsidy (newly minted) plus the sum of all 
+  transactions' fees in that block.
+</p>
+
+
+<!-- 7. CONCLUSIONS -->
+<h2>7. Conclusions / Key Takeaways</h2>
+<ul>
+  <li><strong>Multiple Miners / Proof of Work:</strong> Replaces one central authority 
+      with many potential block producers, improving censorship resistance.</li>
+  <li><strong>Competing to Produce Blocks:</strong> Each miner hashes the block 
+      header until the result is below a dynamic target, proving 
+      they did costly work.</li>
+  <li><strong>Difficulty Adjustments:</strong> Every 2,016 blocks (~2 weeks) 
+      the target recalibrates based on actual block production time 
+      to maintain ~10 min intervals.</li>
+  <li><strong>Forks & Splits:</strong> Occur when two blocks are found simultaneously. 
+      Eventually, one becomes the strongest chain (most proof of work), 
+      invalidating the other.</li>
+  <li><strong>Security & Double-Spends:</strong> Miners below 50% of the hashrate 
+      have a diminishing probability of reversing many confirmations. 
+      Waiting for multiple confirmations lowers double-spend risk.</li>
+  <li><strong>Fees as Incentives:</strong> Transactions pay fees so miners 
+      have reason to include them, preventing censorship and compensating 
+      miners as the block subsidy decreases over time.</li>
+</ul>
+
+<hr>
+<p><em>End of Study Notes for Chapter 7. We now have a decentralized 
+proof-of-work mining system where miners compete to produce blocks 
+and collect rewards, making transaction censorship much harder!</em></p>
+
+</body>
+</html>

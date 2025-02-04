@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Study Notes: Chapter 1 (Grokking Bitcoin)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 1em;
+            line-height: 1.5;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin-top: 1.5em;
+        }
+
+        .question {
+            font-weight: bold;
+            margin-top: 1em;
+        }
+
+        .answer {
+            margin-left: 1em;
+        }
+
+        .figure {
+            margin: 1em 0;
+            text-align: center;
+        }
+
+        .figure img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .figure-caption {
+            font-size: 0.9em;
+            color: #555;
+            margin-top: 0.5em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Study Notes: Chapter 1 – Introduction to Bitcoin</h1>
+
+    <!-- 1. INTRODUCTION TO BITCOIN -->
+    <h2>1. What is Bitcoin and Why Does It Matter?</h2>
+
+    <p class="question">
+        Q1: How would you describe Bitcoin in simple terms?
+    </p>
+    <p class="answer">
+        Bitcoin is a digital cash system that lets people transfer value (called
+        <strong>bitcoins</strong>) directly to one another over the internet, without
+        relying on banks or governments. It’s “peer-to-peer” money, meaning no central
+        authority is in charge.
+    </p>
+
+    <p class="question">
+        Q2: What do we mean by "<em>Bitcoin network</em>"?
+    </p>
+    <p class="answer">
+        The Bitcoin network is made up of thousands of computers (known as
+        <strong>nodes</strong>) around the world. These nodes run Bitcoin software
+        and collectively verify, process, and record all Bitcoin transactions.
+    </p>
+
+    <div class="figure">
+        <img src="images/ch01/01-01.svg" alt="01 01" width="75%">
+        <div class="figure-caption">
+            Figure 1. The Bitcoin network and its ecosystem.
+        </div>
+    </div>
+
+    <p class="question">
+        Q3: Does anyone control or own Bitcoin?
+    </p>
+    <p class="answer">
+        No single entity controls Bitcoin. It is <strong>decentralized</strong>, meaning
+        no individual government, company, or person dictates its rules or operation.
+        Anyone, anywhere, can use it without permission.
+    </p>
+
+
+    <!-- 2. THE BIG PICTURE -->
+    <h2>2. The Big Picture: How a Bitcoin Payment Works</h2>
+
+    <p>
+        The overall process of sending and receiving bitcoins can be understood in
+        <strong>four key steps</strong>:
+    </p>
+
+    <div class="figure">
+        <img src="images/ch01/01-02.svg" alt="01 02" width="100%">
+        <div class="figure-caption">
+            Figure 2. Overview of a Bitcoin payment in four steps.
+        </div>
+    </div>
+
+    <p class="question">
+        Q4: What are the four steps in a typical Bitcoin transaction?
+    </p>
+    <ol class="answer">
+        <li><strong>Create and sign:</strong> Alice makes a transaction that instructs
+            1 BTC to go to Bob’s address. She signs it digitally using her private key.</li>
+        <li><strong>Broadcast to network:</strong> The transaction is sent out to
+            Bitcoin nodes. Each node checks if Alice has enough funds and if her
+            signature is valid.</li>
+        <li><strong>Add to blockchain:</strong> Miners bundle valid transactions into
+            a <em>block</em> and append it to the blockchain (the ledger of all
+            transactions).</li>
+        <li><strong>Notify wallets:</strong> Bob’s wallet sees that the transaction has
+            been included, and confirms that he received 1 BTC.</li>
+    </ol>
+
+    <p class="question">
+        Q5: What is the <em>blockchain</em>?
+    </p>
+    <p class="answer">
+        The blockchain is an <strong>append-only</strong> database or ledger
+        shared by all nodes. It stores every Bitcoin transaction ever made in
+        blocks that are cryptographically linked.
+    </p>
+
+    <p class="question">
+        Q6: Who gets to add new blocks to the blockchain?
+    </p>
+    <p class="answer">
+        Special nodes called <strong>miners</strong> try to solve a difficult
+        cryptographic puzzle. Whichever miner solves it first creates a new block
+        and is rewarded with newly minted bitcoins plus any transaction fees from
+        the block.
+    </p>
+
+
+    <!-- 3. PROBLEMS WITH TRADITIONAL MONEY -->
+    <h2>3. Problems With Traditional Money</h2>
+
+    <p>
+        Bitcoin tries to address several issues found in today's financial systems.
+    </p>
+
+    <p class="question">
+        Q7: What are four major problems that Bitcoin aims to solve?
+    </p>
+    <ul class="answer">
+        <li><strong>Segregation:</strong> Many people lack bank access due to cost,
+            documentation, or discrimination.</li>
+        <li><strong>Privacy issues:</strong> Traditional electronic payments can be
+            traced, censored, or frozen by centralized parties.</li>
+        <li><strong>Inflation:</strong> Many national currencies suffer from
+            inflation or even hyperinflation if too much money is printed.</li>
+        <li><strong>Borders:</strong> Moving value across countries is often slow,
+            expensive, or restricted.</li>
+    </ul>
+
+    <div class="figure">
+        <img src="images/ch01/01-08.svg" alt="01 08" width="75%">
+        <div class="figure-caption">
+            Figure 8. Inflation illustrated.
+        </div>
+    </div>
+
+
+    <!-- 4. THE BITCOIN APPROACH -->
+    <h2>4. The Bitcoin Approach</h2>
+
+    <p class="question">
+        Q8: How does Bitcoin address these problems?
+    </p>
+    <p class="answer">
+        Bitcoin’s design rests on three pillars:
+    </p>
+    <ul class="answer">
+        <li><strong>Decentralized:</strong> No single point of control means
+            no censorship or forced exclusion.</li>
+        <li><strong>Limited supply:</strong> Only 21 million bitcoins will
+            ever be created, resisting the inflation found in fiat currencies.</li>
+        <li><strong>Borderless:</strong> Anyone with an internet connection
+            can transact globally, often at lower fees than traditional methods.</li>
+    </ul>
+
+    <div class="figure">
+        <img src="images/ch01/01-10.svg" alt="01 10" width="75%">
+        <div class="figure-caption">
+            Figure 10. Bitcoin’s supply curve over time, approaching 21 million.
+        </div>
+    </div>
+
+
+    <!-- 5. HOW IS BITCOIN USED? -->
+    <h2>5. Real-World Use Cases</h2>
+
+    <p class="question">
+        Q9: What are common scenarios where Bitcoin is actually used?
+    </p>
+    <ul class="answer">
+        <li><strong>Savings:</strong> You can store bitcoins securely using
+            private keys. Some users treat Bitcoin like digital gold.</li>
+        <li><strong>Cross-border payments:</strong> Faster and potentially cheaper
+            than services like Western Union, especially where local banking is weak.</li>
+        <li><strong>Shopping:</strong> Online stores (and some physical shops)
+            accept Bitcoin to avoid credit card fees or risk.</li>
+        <li><strong>Speculation:</strong> Due to its volatility, some people
+            buy/sell bitcoins hoping for profit.</li>
+        <li><strong>Noncurrency uses:</strong> Using Bitcoin’s blockchain for
+            ownership records or proof-of-existence of documents.</li>
+    </ul>
+
+    <div class="figure">
+        <img src="images/ch01/01-12.svg" alt="01 12" width="75%">
+        <div class="figure-caption">
+            Figure 13 (labeled "01-12" in the source). A historical look at Bitcoin’s price volatility.
+        </div>
+    </div>
+
+    <p class="question">
+        Q10: When might Bitcoin <em>not</em> be ideal?
+    </p>
+    <p class="answer">
+        Bitcoin transactions can incur relatively high fees (especially for
+        tiny amounts), and confirmations can be slow (about 10 minutes or more).
+        Also, security demands can be a challenge for new users, and price
+        volatility remains a factor.
+    </p>
+
+
+    <!-- 6. OTHER CRYPTOCURRENCIES -->
+    <h2>6. Other Cryptocurrencies (Alt-coins)</h2>
+
+    <p class="question">
+        Q11: Are there alternatives to Bitcoin?
+    </p>
+    <p class="answer">
+        Yes. There are many “alt-coins” (e.g., Ethereum, Solana, Monero, Zcash) that
+        introduce unique features like complex smart contracts or enhanced privacy.
+        However, Bitcoin remains the largest and most established.
+        <ul>
+            <li><b>Ethereum</b>: Focuses on running decentralized applications (dApps) and smart contracts. However, it
+                is highly centralized, with a small group of developers controlling its direction. Its supply schedule
+                has been random and not auditable, and verifying its blockchain is too resource-intensive for
+                individuals - leaving control to a handful of powerful validators. Overall, its security and
+                architecture are far inferior to Bitcoin.</li>
+            <li><b>Monero</b>: Emphasizes privacy and anonymity, but is also centralized, lacks Bitcoin’s robust
+                security, and remains vulnerable to a small group of developers who control its direction.
+            </li>
+            <li><b>Solana</b>: Aims to provide high throughput and speed, but is extremely centralized, has experienced
+                multiple outages, and relies on powerful hardware - placing control in the hands of a few large
+                validators rather than a decentralized network.</li>
+            <li><b>Zcash</b>: Focuses on privacy through different cryptographic techniques. It is also governed by a
+                tight-knit team of developers, and its lack of widespread adoption and decentralization make it far less
+                secure and trustless than Bitcoin.
+            </li>
+            <li><b>Namecoin</b>: Used for decentralized domain name registration, but it has failed to gain significant
+                traction and is largely controlled by a few entities.
+            </li>
+        </ul>
+    </p>
+    <p>
+        Buyer Beware: Unlike Bitcoin, which is decentralized and secure, most altcoins are technically unsound,
+        centralized, and controlled by a handful of people or organizations. They often serve as a means for developers
+        to dump premined tokens on unsuspecting buyers, making them risky investments. Bitcoin remains the only
+        cryptocurrency with a proven track record of decentralization, security, and sound architecture.
+
+
+    </p>
+
+    <div class="figure">
+        <img src="images/ch01/u01-09.svg" alt="u01 09" width="50%">
+        <div class="figure-caption">
+            Figure 14. The network effect: more users attract more users.
+        </div>
+    </div>
+
+    <p class="question">
+        Q12: Why is Bitcoin's “network effect” important?
+    </p>
+    <p class="answer">
+        The more people use a currency, the more <em>useful</em> it becomes.
+        This effect makes it hard for new coins to challenge Bitcoin unless they
+        offer significant improvements or specialized features.
+    </p>
+
+
+    <!-- 7. KEY TAKEAWAYS / SUMMARY -->
+    <h2>7. Key Takeaways</h2>
+    <ul>
+        <li>Bitcoin is a <strong>global, borderless</strong> form of digital money.</li>
+        <li>The <strong>Bitcoin network</strong> is a collection of thousands of
+            computers (nodes) verifying and recording transactions.</li>
+        <li>Transactions involve <strong>private keys</strong> (to authorize sending)
+            and <strong>public addresses</strong> (to receive).</li>
+        <li>The <strong>blockchain</strong> is an append-only ledger containing
+            all valid transactions.</li>
+        <li>Bitcoin aims to solve issues of <strong>segregation, privacy, inflation,
+                and cross-border friction</strong> by being decentralized, limited in
+            supply, and permissionless.</li>
+        <li>Unlike Bitcoin, most altcoins are centralized, insecure, and controlled by a small group of developers and
+            validators, making them risky investments.</li>
+    </ul>
+<h2>8. Additional Readings</h2>
+
+<ul>
+    <li>
+        <strong><a href="https://bitcoin.org/bitcoin.pdf" target="_blank">Bitcoin: A Peer-to-Peer Electronic Cash System</a></strong><br>
+        <em>Author:</em> Satoshi Nakamoto<br>
+        <em>Summary:</em> The original whitepaper introducing Bitcoin, detailing its purpose, mechanics, and underlying philosophy.
+    </li>
+    <li>
+        <strong><a href="https://vijayboyapati.medium.com/the-bullish-case-for-bitcoin-6ecc8bdecc1" target="_blank">The Bullish Case for Bitcoin</a></strong><br>
+        <em>Author:</em> Vijay Boyapati<br>
+        <em>Summary:</em> An in-depth analysis of Bitcoin's value proposition, addressing common misconceptions and highlighting its potential as a global monetary system.
+    </li>
+    <li>
+        <strong><a href="https://casebitcoin.com/docs/StoneRidge_2020_Shareholder_Letter.pdf" target="_blank">Stone Ridge 2020 Shareholder Letter
+        </a></strong><br>
+        <em>Author:</em> Ross Stevens<br>
+        <em>Summary:</em> Articulates Stone Ridge's bitcoin thesis through 1st-principles arguments and describes the founder's "aha moments" pertaining to bitcoin.</li>
+    <li>
+        <strong><a href="https://gwern.net/bitcoin-is-worse-is-better" target="_blank">Bitcoin Is Worse Is Better</a></strong><br>
+        <em>Author:</em> Gwern Branwen<br>
+        <em>Summary:</em> This essay discusses how Bitcoin exemplifies the 'Worse is Better' paradigm, where a design that is seemingly less elegant succeeds due to its practical implementation and gradual refinement.
+    </li>
+    <li>
+        <strong><a href="https://dergigi.com/2021/01/14/bitcoin-is-time/" target="_blank">Bitcoin is Time</a></strong><br>
+        <em>Author:</em> Gigi<br>
+        <em>Summary:</em> Discusses the concept of Bitcoin as a decentralized clock, exploring its role in synchronizing a global network without central authority.
+    </li>
+    <li>
+        <strong><a href="https://cacm.acm.org/practice/bitcoins-academic-pedigree/" target="_blank">Bitcoin's Academic Pedigree</a></strong><br>
+        <em>Author:</em> Arvind Narayanan and Jeremy Clark<br>
+        <em>Summary:</em> Bitcoin didn't simply appear out of thin air - it was built upon decades of work and came after many failed digital currency projects.
+    </li>
+</ul>
+<hr>
+
+    <p><em>End of Study Notes for Chapter 1. Keep these key points in mind as you delve deeper into Bitcoin’s technical
+            and practical aspects!</em></p>
+
+</body>
+
+</html>

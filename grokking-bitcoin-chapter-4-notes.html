@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Study Notes: Chapter 4 (Grokking Bitcoin)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    .question {
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .answer {
+      margin-left: 1em;
+    }
+    .figure {
+      margin: 1em 0;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+    }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Study Notes: Chapter 4 – Wallets</h1>
+
+<!-- 1. WALLET BASICS -->
+<h2>1. Why Do We Need a Wallet?</h2>
+
+<p class="question">
+  Q1: What is a wallet in the context of Bitcoin (or cookie tokens)?
+</p>
+<p class="answer">
+  A <em>wallet</em> is a software application that generates and stores your 
+  private keys, creates addresses, facilitates payments, and keeps track 
+  of your funds. It does not store the money itself (that’s in the blockchain 
+  or spreadsheet) but holds the keys to spend it.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-01.svg" alt="04 01" width="75%">
+  <div class="figure-caption">
+    Figure 1. Bitcoin (cookie token) wallets
+  </div>
+</div>
+
+<p class="question">
+  Q2: What common tasks should a wallet handle?
+</p>
+<p class="answer">
+  <ul>
+    <li>Create new addresses (and manage the corresponding private keys)</li>
+    <li>Transfer payment details easily (avoid typing errors using QR codes, etc.)</li>
+    <li>Send signed payment requests (transactions) to the ledger</li>
+    <li>Track balances of each address</li>
+    <li>Back up private keys so users don’t lose funds</li>
+  </ul>
+</p>
+
+
+<!-- 2. FIRST WALLET VERSION & FEATURES -->
+<h2>2. First Wallet Version & Key Features</h2>
+
+<p class="question">
+  Q3: How does the wallet improve the user experience compared to emailing Lisa manually?
+</p>
+<p class="answer">
+  The wallet automates most steps: it handles address creation, 
+  digital signatures, and prepares the payment details (amount, recipient address) 
+  for the user. It also updates balances automatically by checking the spreadsheet/ledger.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-02.svg" alt="04 02" width="100%">
+  <div class="figure-caption">
+    Figure 2. Buying a cookie with the new wallet app using QR codes
+  </div>
+</div>
+
+
+<!-- 3. PRIVATE KEY BACKUPS -->
+<h2>3. Backing Up Private Keys</h2>
+
+<p class="question">
+  Q4: Why do we need to back up our private keys?
+</p>
+<p class="answer">
+  Because losing your private keys means permanently losing access to your funds. 
+  The ledger (spreadsheet/blockchain) won’t care who lost a key; it only checks 
+  digital signatures.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-05.svg" alt="04 05" width="50%">
+  <div class="figure-caption">
+    Figure 5. Simple backup of private keys (unencrypted) has potential risks.
+  </div>
+</div>
+
+<p class="question">
+  Q5: What are some initial (but imperfect) solutions for backing up private keys?
+</p>
+<p class="answer">
+  <ul>
+    <li>Automatically emailing a backup whenever a new address is created 
+        (too frequent, risk of theft)</li>
+    <li>Pre-creating a batch of addresses, then making a single backup 
+        (less frequent, but still many backups)</li>
+    <li>Encrypting backups with a password (solves theft issues but adds 
+        password risks, potential forgetting, etc.)</li>
+  </ul>
+</p>
+
+<p class="question">
+  Q6: What are the main drawbacks of password-encrypted backups?
+</p>
+<p class="answer">
+  <ul>
+    <li>You must secure both the backup file <em>and</em> the password.</li>
+    <li>You risk forgetting rarely used passwords.</li>
+    <li>As technology advances, brute-forcing older passwords becomes easier.</li>
+    <li>Humans often choose weak or guessable passwords.</li>
+  </ul>
+</p>
+
+
+<!-- 4. HIERARCHICAL DETERMINISTIC (HD) WALLETS -->
+<h2>4. Hierarchical Deterministic Wallets</h2>
+
+<div class="figure">
+  <img src="images/ch04/04-07.svg" alt="04 07" width="75%">
+  <div class="figure-caption">
+    Figure 7. Backing up a single random seed is enough for all future addresses.
+  </div>
+</div>
+
+<p class="question">
+  Q7: What is a <em>hierarchical deterministic (HD) wallet</em>?
+</p>
+<p class="answer">
+  An HD wallet derives all of its private keys from a single master 
+  seed. This seed alone can recreate the entire family (tree) of private 
+  keys, enabling a single backup to restore them all.
+</p>
+
+<p class="question">
+  Q8: Why is this approach so much better for backups?
+</p>
+<p class="answer">
+  You only need to back up <em>once</em> (the seed). Any new addresses 
+  derived in the future remain backed up as long as you have that seed. 
+  No repeated exports, no repeated backups each time a new key is generated.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-08.svg" alt="04 08" width="50%">
+  <div class="figure-caption">
+    Figure 8. A tree of keys under two "accounts": shopping and savings
+  </div>
+</div>
+
+
+<!-- 5. SEEDS & MNEMONIC SENTENCES -->
+<h2>5. Seeds and Mnemonic Sentences (BIP39)</h2>
+
+<p class="question">
+  Q9: Instead of storing a hex seed like <code>16432a2077…</code>, how can we make it more human-friendly?
+</p>
+<p class="answer">
+  We use a <strong>mnemonic sentence</strong> of 12 or 24 English words. 
+  This is easier to write down and verify. The wallet can convert it back 
+  into the seed if needed.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-16.svg" alt="04 16" width="75%">
+  <div class="figure-caption">
+    Figure 16. Generating a seed from a mnemonic (12 or 24 words)
+  </div>
+</div>
+
+<p class="question">
+  Q10: How does the mnemonic system protect against typos?
+</p>
+<p class="answer">
+  Each mnemonic includes a short checksum (several bits), so if the user 
+  writes down incorrect words, there’s a high chance the wallet will detect it 
+  when restoring.
+</p>
+
+
+<!-- 6. EXTENDED (XPUB) / (XPRV) KEYS -->
+<h2>6. Extended Public (XPUB) and Private (XPRV) Keys</h2>
+
+<p class="question">
+  Q11: What is an xprv and how does it differ from a normal private key?
+</p>
+<p class="answer">
+  An xprv (extended private key) contains two parts:
+  <ul>
+    <li>The private key itself</li>
+    <li>A <em>chain code</em> (256 bits of extra "entropy")</li>
+  </ul>
+  This setup allows generating child keys (and child chain codes) in a 
+  hierarchical fashion.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-19.svg" alt="04 19" width="50%">
+  <div class="figure-caption">
+    Figure 19. An xpub has a public key + a chain code; an xprv has a private key + a chain code
+  </div>
+</div>
+
+<p class="question">
+  Q12: What about xpub (extended public key)?
+</p>
+<p class="answer">
+  Similarly, an xpub is the public key + chain code. With an xpub, you can 
+  generate new addresses (child public keys), but cannot spend funds because 
+  you don’t have the private keys.
+</p>
+
+<p class="question">
+  Q13: Why is xpub so useful on insecure servers?
+</p>
+<p class="answer">
+  A web server can generate many fresh receiving addresses using the xpub 
+  (no private keys needed), so even if the server is hacked, the attacker 
+  cannot steal funds—it only exposes public info.
+</p>
+
+
+<!-- 7. HARDENED KEY DERIVATION -->
+<h2>7. Hardened Key Derivation</h2>
+
+<p class="question">
+  Q14: What's the risk if someone has a normal child private key <strong>and</strong> 
+  the parent xpub?
+</p>
+<p class="answer">
+  They can potentially compute the entire parent xprv (and thus spend all 
+  other child keys in that branch). This is because normal derivation 
+  uses standard math that can be reversed with these two pieces of info.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-24.svg" alt="04 24" width="75%">
+  <div class="figure-caption">
+    Figure 24. Hardened child derivation uses the parent private key in the hash, 
+    preventing someone with the child private key and the parent xpub from 
+    calculating the parent private key.
+  </div>
+</div>
+
+<p class="question">
+  Q15: How does hardened derivation fix that?
+</p>
+<p class="answer">
+  Hardened derivation uses the <em>parent private key</em> in the hash instead of 
+  the parent public key. That way, the child private key cannot be reversed 
+  from the xpub.
+</p>
+
+
+<!-- 8. PUBLIC KEY MATH -->
+<h2>8. Public Key Math (Optional Deep Dive)</h2>
+
+<p class="question">
+  Q16: What is the elliptic curve used in Bitcoin, and why is it secure?
+</p>
+<p class="answer">
+  Bitcoin uses the secp256k1 elliptic curve <code>y^2 = x^3 + 7 (mod p)</code>. 
+  It's secure because there's no known efficient "inverse" for the 
+  multiplication operation that maps a private key to a public key.
+</p>
+
+<div class="figure">
+  <img src="images/ch04/04-30.svg" alt="04 30" width="75%">
+  <div class="figure-caption">
+    Figure 30. Summarizing how child public keys come from parent xpub using special addition operations.
+  </div>
+</div>
+
+
+<!-- 9. SUMMARY -->
+<h2>9. Key Takeaways</h2>
+<ul>
+  <li><strong>Wallets</strong> manage private keys, create new addresses, handle backups, 
+      and automate the signing process so users don't have to do it manually.</li>
+  <li><strong>HD Wallets (BIP32/BIP44):</strong> All private keys are derived from 
+      a single master seed, ensuring simpler backups (only need to keep 
+      that seed safe).</li>
+  <li><strong>Mnemonic (BIP39):</strong> A set of words to represent the seed. 
+      Easier to write down than raw hex. Includes a short checksum 
+      to detect typos.</li>
+  <li><strong>XPUB & XPRV:</strong> Extended public/private keys which each contain 
+      a chain code. This allows hierarchical generation of addresses.</li>
+  <li><strong>Hardened derivation:</strong> Protects an entire branch of keys from 
+      being compromised if a single child private key is leaked along with 
+      the parent xpub.</li>
+  <li><strong>Online shops & xpub:</strong> Merchants can generate addresses 
+      without holding private keys on their web servers.</li>
+</ul>
+
+<hr>
+<p><em>End of Study Notes for Chapter 4. These principles—wallet apps, HD wallets, 
+mnemonic sentences, and xpub/xprv—are crucial for convenient and secure 
+management of Bitcoin or cookie tokens!</em></p>
+
+</body>
+</html>

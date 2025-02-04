@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Study Notes: Chapter 2 (Grokking Bitcoin)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      line-height: 1.5;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    .question {
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .answer {
+      margin-left: 1em;
+    }
+    .figure {
+      margin: 1em 0;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+    }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Study Notes: Chapter 2 – Cryptographic Hash Functions and Digital Signatures</h1>
+
+<!-- 1. COOKIE TOKEN SPREADSHEET INTRO -->
+<h2>1. Revisiting the Cookie Token Spreadsheet</h2>
+
+<p class="question">
+  Q1: How do cookie tokens help illustrate the basics of a digital currency system?
+</p>
+<p class="answer">
+  The cookie token spreadsheet is a simplified analogy to understand 
+  how transactions, money supply, and security might work. Each 
+  spreadsheet entry describes who sends tokens to whom, just as Bitcoin’s 
+  ledger (the blockchain) records who sends bitcoins.
+</p>
+
+<p class="question">
+  Q2: What are the main features of this cookie token system?
+</p>
+<p class="answer">
+  <ul>
+    <li><strong>Finite Money Supply:</strong> Lisa, who maintains the spreadsheet, 
+      gets daily rewards of cookie tokens, but the amount halves every four years, 
+      ensuring the supply stays below 21 million.</li>
+    <li><strong>Trusted Authority:</strong> Everyone trusts Lisa not to alter or 
+      delete entries dishonestly—she only appends new records for transfers.</li>
+    <li><strong>Transferring Tokens:</strong> To transfer cookie tokens, people 
+      ask Lisa to update the spreadsheet, just like a centralized ledger.</li>
+  </ul>
+</p>
+
+<div class="figure">
+  <img src="images/ch02/02-02.svg" alt="02 02" width="50%">
+  <div class="figure-caption">
+    Figure 2. Cookie token spreadsheet structure (Sender, Recipient, Amount).
+  </div>
+</div>
+
+
+<!-- 2. CRYPTOGRAPHIC HASHES -->
+<h2>2. Cryptographic Hashes</h2>
+
+<p class="question">
+  Q3: What is a cryptographic hash function, in simple terms?
+</p>
+<p class="answer">
+  A cryptographic hash function transforms any input data (files, text, 
+  images) into a fixed-size, seemingly random output. It’s like a 
+  “digital fingerprint”: small changes in the input produce entirely 
+  different outputs.
+</p>
+
+<p class="question">
+  Q4: Why are cryptographic hash functions important in Bitcoin?
+</p>
+<p class="answer">
+  They ensure <strong>data integrity</strong>. By comparing hashes of transactions 
+  or blocks, one can easily detect tampering. They’re also the basis 
+  for mining, block chaining, and digital signatures.
+</p>
+
+<div class="figure">
+  <img src="images/ch02/02-07.svg" alt="02 07" width="75%">
+  <div class="figure-caption">
+    Figure 7. Even a tiny change in the file drastically changes the hash.
+  </div>
+</div>
+
+<p class="question">
+  Q5: What are the core properties of cryptographic hash functions?
+</p>
+<p class="answer">
+  <ol>
+    <li><strong>Deterministic:</strong> The same input always yields the same hash.</li>
+    <li><strong>Sensitive:</strong> A slight change in input changes the output drastically.</li>
+    <li><strong>Fixed-size output:</strong> For example, SHA-256 always produces 256 bits.</li>
+    <li><strong>Hard to invert:</strong> Finding an input that produces a given hash 
+        requires astronomical brute force.</li>
+  </ol>
+</p>
+
+<p class="question">
+  Q6: How big is a SHA256 hash, and why is that significant?
+</p>
+<p class="answer">
+  A SHA256 hash is 256 bits (32 bytes). This large size makes brute-force 
+  attacks impractical. Finding a “collision” or forging inputs that produce 
+  a specific hash is computationally unfeasible with current technology.
+</p>
+
+<div class="figure">
+  <img src="images/ch02/02-11.svg" alt="02 11" width="75%">
+  <div class="figure-caption">
+    Figure 11. How small changes produce drastically different SHA256 hashes.
+  </div>
+</div>
+
+
+<!-- 3. DIGITAL SIGNATURES -->
+<h2>3. Digital Signatures</h2>
+
+<p class="question">
+  Q7: What problem do digital signatures solve in the cookie token system?
+</p>
+<p class="answer">
+  Digital signatures confirm that a message (like a payment request) 
+  truly comes from the rightful owner. In our analogy, they stop 
+  someone like Mallory from impersonating John by forging 
+  “transfer” emails to Lisa.
+</p>
+
+<div class="figure">
+  <img src="images/ch02/02-01.svg" alt="02 01" width="75%">
+  <div class="figure-caption">
+    Figure 1. Digital signatures in action.
+  </div>
+</div>
+
+<p class="question">
+  Q8: How do key pairs (private key/public key) enable digital signatures?
+</p>
+<p class="answer">
+  <ul>
+    <li>
+      <strong>Private Key:</strong> A secret number used to sign messages. Only 
+      the person who holds this key can create valid signatures.
+    </li>
+    <li>
+      <strong>Public Key:</strong> Derived from the private key and shared openly. 
+      It verifies signatures. If the signature checks out with your public key, 
+      it means your private key must have been used.
+    </li>
+  </ul>
+</p>
+
+<div class="figure">
+  <img src="images/ch02/02-15.svg" alt="02 15" width="100%">
+  <div class="figure-caption">
+    Figure 15. The digital signature process with key pairs.
+  </div>
+</div>
+
+<p class="question">
+  Q9: Could you describe the typical three steps when sending a signed message?
+</p>
+<p class="answer">
+  <ol>
+    <li><strong>Preparation:</strong> Generate a private key and derive a public key. 
+        Give the public key to the receiver (e.g., Lisa in our story).</li>
+    <li><strong>Signing:</strong> Hash the message and then encrypt that hash 
+        with your private key. The result is the <em>digital signature</em>.</li>
+    <li><strong>Verification:</strong> The receiver decrypts the signature with 
+        your public key and compares it to the hash of the message they received. 
+        If they match, the signature is valid.</li>
+  </ol>
+</p>
+
+<div class="figure">
+  <img src="images/ch02/02-19.svg" alt="02 19" width="75%">
+  <div class="figure-caption">
+    Figure 19. A message is hashed, then “encrypted” (signed) with the private key.
+  </div>
+</div>
+
+
+<!-- 4. STORING AND SECURING PRIVATE KEYS -->
+<h2>4. Storing and Securing Private Keys</h2>
+
+<p class="question">
+  Q10: What happens if someone steals your private key?
+</p>
+<p class="answer">
+  They can sign transactions in your name and spend your tokens (or bitcoins). 
+  The system sees the valid signature and processes the transfer as if 
+  <em>you</em> authorized it. There’s no way to undo these transactions if the 
+  thief has your key.
+</p>
+
+<p class="question">
+  Q11: What are some ways to secure private keys?
+</p>
+<p class="answer">
+  <ul>
+    <li>
+      <strong>Encrypt the Key:</strong> Protect it with a strong passphrase 
+      so even if someone copies the file, they still need the password.
+    </li>
+    <li>
+      <strong>Keep it Offline:</strong> Store on a computer or device with no 
+      network access or even physically on paper.
+    </li>
+    <li>
+      <strong>Split the Key:</strong> Break the key into parts (though carefully) 
+      so multiple pieces are required to reconstruct it.
+    </li>
+  </ul>
+  Each option balances security against theft vs. risk of you losing 
+  access to your own key.
+</p>
+
+<div class="figure">
+  <img src="images/ch02/02-23.svg" alt="02 23" width="50%">
+  <div class="figure-caption">
+    Figure 23. Examples of different private key storage options, 
+    each with different security and convenience trade-offs.
+  </div>
+</div>
+
+
+<!-- 5. CHAPTER 2 SUMMARY -->
+<h2>5. Key Takeaways / Summary</h2>
+
+<ul>
+  <li><strong>Cookie Tokens & Bitcoin:</strong> Like Bitcoin, cookie tokens have 
+      a controlled issuance schedule. This example system helps illustrate 
+      mining rewards and ledger appends.</li>
+  <li><strong>Cryptographic Hashes:</strong> Hash functions are one-way, fixed-size, 
+      and sensitive to even tiny input changes. They verify data integrity.</li>
+  <li><strong>Digital Signatures:</strong> A private key signs (encrypts the hash 
+      of a message), and a public key verifies. This ensures only the owner 
+      of the private key can authorize spending.</li>
+  <li><strong>Private Key Security:</strong> You control your assets only as long 
+      as you control your private key. Storing keys safely is crucial.</li>
+  <li><strong>Moving Toward Bitcoin:</strong> We’ve added digital signatures 
+      and hashing principles—essential building blocks of Bitcoin’s 
+      security model. Next chapters replace “Lisa’s spreadsheet” with 
+      a decentralized blockchain.</li>
+</ul>
+
+
+<hr>
+<p><em>End of Study Notes for Chapter 2. These principles—hashing, signing, 
+private/public keys—lay the foundation for deeper Bitcoin concepts in 
+subsequent chapters!</em></p>
+
+</body>
+</html>
