@@ -1,0 +1,195 @@
+/* Modern styling for study interface */
+:root {
+  --primary-color: #f7931a; /* Bitcoin orange */
+  --secondary-color: #4a4a4a;
+  --background-light: #f9f9f9;
+  --background-dark: #333;
+  --border-color: #ddd;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: var(--secondary-color);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  text-align: center;
+  padding: 40px 0;
+  background: var(--background-light);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 40px;
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.header h1 {
+  color: var(--primary-color);
+  margin: 0;
+  font-size: 2.5em;
+}
+
+.header p {
+  color: var(--secondary-color);
+  margin: 10px 0 0;
+}
+
+.chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.chapter-card {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--background-light);
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.chapter-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px var(--shadow-color);
+}
+
+.chapter-card h3 {
+  color: var(--primary-color);
+  margin: 0 0 15px 0;
+  font-size: 1.4em;
+}
+
+.chapter-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chapter-links a {
+  padding: 8px 16px;
+  background: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9em;
+  transition: background-color 0.2s;
+  flex: 1;
+  text-align: center;
+  min-width: 100px;
+}
+
+.chapter-links a:hover {
+  background: #e17f00;
+}
+
+.resources-section {
+  background: var(--background-light);
+  padding: 30px;
+  border-radius: 12px;
+  margin-top: 40px;
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.resources-section h2 {
+  color: var(--primary-color);
+  margin-top: 0;
+}
+
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.resource-card {
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.resource-card a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.resource-card a:hover {
+  text-decoration: underline;
+}
+
+/* Progress tracking styles */
+.progress-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-left: 8px;
+  background: #ddd;
+}
+
+.completed {
+  background: #4caf50;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 20px 20px;
+  background: var(--background-light);
+  margin-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+.footer-text {
+  margin-bottom: 15px;
+}
+.footer-links {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+.footer-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.footer-separator {
+  color: var(--secondary-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+
+  .chapter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    padding: 20px 0;
+  }
+
+  .header h1 {
+    font-size: 2em;
+  }
+}
